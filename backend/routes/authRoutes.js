@@ -8,7 +8,8 @@ const {
   validateLogin,
   validateRefreshToken,
   validateForgotPassword,
-  validateResetPassword,
+  validateVerifyForgotPasswordOtp,
+  validateResetPasswordWithOtp,
   validateChangePassword,
 } = require("../middleware/authValidation");
 
@@ -16,8 +17,9 @@ const {
 router.post("/register",               validateRegister,      auth.register);
 router.post("/login",                  validateLogin,         auth.login);
 router.post("/refresh-token",          validateRefreshToken,  auth.refreshToken);
-router.post("/forgot-password",        validateForgotPassword, auth.forgotPassword);
-router.patch("/reset-password/:token", validateResetPassword, auth.resetPassword);
+router.post("/forgot-password",        validateForgotPassword,          auth.forgotPassword);
+router.post("/forgot-password/verify-otp", validateVerifyForgotPasswordOtp, auth.verifyForgotPasswordOtp);
+router.patch("/reset-password",        validateResetPasswordWithOtp,    auth.resetPasswordWithOtp);
 
 // ── Protected (cần access token) ──────────────────────────────────────────────
 router.use(protect);

@@ -6,13 +6,12 @@ const Role = require("./Role");
 
 const UserSchema = new mongoose.Schema(
   {
-    username: {
+    fullName: {
       type: String,
-      required: [true, "Username là bắt buộc"],
-      unique: true,
+      required: [true, "Họ tên là bắt buộc"],
       trim: true,
-      minlength: [3, "Username phải có ít nhất 3 ký tự"],
-      maxlength: [30, "Username tối đa 30 ký tự"],
+      minlength: [2, "Họ tên phải có ít nhất 2 ký tự"],
+      maxlength: [100, "Họ tên tối đa 100 ký tự"],
     },
     email: {
       type: String,
@@ -32,6 +31,26 @@ const UserSchema = new mongoose.Schema(
       ],
       select: false,
     },
+    phoneNumber: {
+      type: String,
+      required: [true, "Số điện thoại là bắt buộc"],
+      unique: true,
+      sparse: true,
+      trim: true,
+      match: [/^\+?[0-9]{9,15}$/, "Số điện thoại không hợp lệ"],
+    },
+    acceptTerms: {
+      type: Boolean,
+      required: [true, "Bạn phải đồng ý điều khoản sử dụng"],
+      validate: {
+        validator: (value) => value === true,
+        message: "Bạn phải đồng ý điều khoản sử dụng",
+      },
+    },
+    allowPromotions: {
+      type: Boolean,
+      default: false,
+    },
 
     // ── ROLE (ObjectId → collection roles) ──────────────────────────────────
     role: {
@@ -44,8 +63,9 @@ const UserSchema = new mongoose.Schema(
     isActive: { type: Boolean, default: true },
 
     // ── RESET PASSWORD ────────────────────────────────────────────────────────
-    passwordResetToken: String,
-    passwordResetExpires: Date,
+    passwordResetOtp: { type: String, select: false },
+    passwordResetOtpExpires: { type: Date, select: false },
+    passwordResetOtpAttempts: { type: Number, default: 0, select: false },
     passwordChangedAt: Date,
 
     // ── REFRESH TOKEN (lưu dạng hash) ─────────────────────────────────────────
@@ -73,6 +93,11 @@ UserSchema.pre("save", async function () {
   if (!this.isNew) this.passwordChangedAt = new Date(Date.now() - 1000);
 });
 
+UserSchema.pre("save",function () {
+  if (!this.isModified("phoneNumber")) return;
+  this.phoneNumber = this.phoneNumber.replace(/[^\d+]/g, "");
+});
+
 // Gán role mặc định nếu user mới chưa có role
 UserSchema.pre("save", async function () {
   if (!this.isNew || this.role) return;
@@ -86,11 +111,21 @@ UserSchema.methods.comparePassword = function (candidate) {
   return bcrypt.compare(candidate, this.password);
 };
 
-UserSchema.methods.createPasswordResetToken = function () {
-  const raw = crypto.randomBytes(32).toString("hex");
-  this.passwordResetToken = crypto.createHash("sha256").update(raw).digest("hex");
-  this.passwordResetExpires = Date.now() + 10 * 60 * 1000; // 10 phút
-  return raw;
+UserSchema.methods.createPasswordResetOtp = function () {
+  const otp = String(Math.floor(100000 + Math.random() * 900000));
+  this.passwordResetOtp = crypto.createHash("sha256").update(otp).digest("hex");
+  const expiresInMinutes = Number(process.env.PASSWORD_RESET_OTP_EXPIRES_MINUTES || 10);
+  this.passwordResetOtpExpires = Date.now() + expiresInMinutes * 60 * 1000;
+  this.passwordResetOtpAttempts = 0;
+  return otp;
+};
+
+UserSchema.methods.verifyPasswordResetOtp = function (otp) {
+  if (!this.passwordResetOtp || !this.passwordResetOtpExpires) return false;
+  if (this.passwordResetOtpExpires.getTime() < Date.now()) return false;
+
+  const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
+  return this.passwordResetOtp === hashedOtp;
 };
 
 UserSchema.methods.changedPasswordAfter = function (jwtIat) {

@@ -2,7 +2,7 @@
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const User = require("../models/User");
-const { sendPasswordResetEmail } = require("../utils/email");
+const { sendPasswordResetOtpEmail } = require("../utils/email");
 
 const JWT_SECRET          = process.env.JWT_SECRET          || "change_this_secret";
 const JWT_EXPIRES_IN      = process.env.JWT_EXPIRES_IN      || "15m";
@@ -13,6 +13,22 @@ const JWT_REFRESH_EXPIRES = process.env.JWT_REFRESH_EXPIRES || "7d";
 
 const signAccessToken  = (id) => jwt.sign({ id }, JWT_SECRET,         { expiresIn: JWT_EXPIRES_IN });
 const signRefreshToken = (id) => jwt.sign({ id }, JWT_REFRESH_SECRET, { expiresIn: JWT_REFRESH_EXPIRES });
+const normalizePhoneNumber = (value = "") => String(value).replace(/[^\d+]/g, "");
+const MAX_OTP_ATTEMPTS = 5;
+
+const handleInvalidOtpAttempt = async (user) => {
+  user.passwordResetOtpAttempts = (user.passwordResetOtpAttempts || 0) + 1;
+  const isExceeded = user.passwordResetOtpAttempts >= MAX_OTP_ATTEMPTS;
+
+  if (isExceeded) {
+    user.passwordResetOtp = undefined;
+    user.passwordResetOtpExpires = undefined;
+    user.passwordResetOtpAttempts = 0;
+  }
+
+  await user.save({ validateBeforeSave: false });
+  return isExceeded;
+};
 
 const sendTokens = async (user, statusCode, res) => {
   const accessToken  = signAccessToken(user._id);
@@ -32,8 +48,15 @@ const sendTokens = async (user, statusCode, res) => {
 
 exports.register = async (req, res) => {
   try {
-    const { username, email, password } = req.body;
-    const user = await User.create({ username, email, password });
+    const { fullName, email, phoneNumber, password, acceptTerms, allowPromotions } = req.body;
+    const user = await User.create({
+      fullName,
+      email,
+      phoneNumber: normalizePhoneNumber(phoneNumber),
+      password,
+      acceptTerms,
+      allowPromotions: allowPromotions ?? false,
+    });
     await user.populate("role", "name displayName permissions");
     await sendTokens(user, 201, res);
   } catch (err) {
@@ -49,9 +72,14 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { password } = req.body;
+    const identifier = (req.body.identifier || req.body.email || req.body.phoneNumber || "").trim();
+    const isEmail = identifier.includes("@");
+    const query = isEmail
+      ? { email: identifier.toLowerCase() }
+      : { phoneNumber: normalizePhoneNumber(identifier) };
 
-    const user = await User.findOne({ email })
+    const user = await User.findOne(query)
       .select("+password +refreshToken")
       .populate("role", "name displayName permissions");
 
@@ -128,58 +156,94 @@ exports.forgotPassword = async (req, res) => {
     if (!user)
       return res.status(404).json({ success: false, message: "Không tìm thấy tài khoản với email này" });
 
-    const resetToken = user.createPasswordResetToken();
+    const otp = user.createPasswordResetOtp();
     await user.save({ validateBeforeSave: false });
 
-    const clientUrl = process.env.CLIENT_URL || "http://localhost:3000";
-    const resetPath = process.env.RESET_PASSWORD_PATH || "/reset-password";
-    const normalizedClientUrl = clientUrl.endsWith("/") ? clientUrl.slice(0, -1) : clientUrl;
-    const normalizedResetPath = resetPath.startsWith("/") ? resetPath : `/${resetPath}`;
-    const resetUrl = `${normalizedClientUrl}${normalizedResetPath}/${resetToken}`;
-
     try {
-      await sendPasswordResetEmail({
+      await sendPasswordResetOtpEmail({
         to: user.email,
-        username: user.username,
-        resetUrl,
+        fullName: user.fullName,
+        otp,
       });
     } catch (mailErr) {
-      console.error("Send reset email failed:", mailErr.message);
-      user.passwordResetToken = undefined;
-      user.passwordResetExpires = undefined;
+      console.error("Send reset OTP email failed:", mailErr.message);
+      user.passwordResetOtp = undefined;
+      user.passwordResetOtpExpires = undefined;
+      user.passwordResetOtpAttempts = 0;
       await user.save({ validateBeforeSave: false });
       return res.status(500).json({
         success: false,
-        message: "Không thể gửi email đặt lại mật khẩu. Vui lòng thử lại sau.",
+        message: "Không thể gửi OTP đặt lại mật khẩu. Vui lòng thử lại sau.",
       });
     }
 
     res.status(200).json({
       success: true,
-      message: "Email đặt lại mật khẩu đã được gửi. Vui lòng kiểm tra hộp thư.",
+      message: "OTP đã được gửi qua email. Vui lòng kiểm tra hộp thư.",
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// ─── RESET MẬT KHẨU (từ link email) ──────────────────────────────────────────
+// ─── XÁC THỰC OTP QUÊN MẬT KHẨU ──────────────────────────────────────────────
 
-exports.resetPassword = async (req, res) => {
+exports.verifyForgotPasswordOtp = async (req, res) => {
   try {
-    const hashed = crypto.createHash("sha256").update(req.params.token).digest("hex");
-    const user = await User.findOne({
-      passwordResetToken: hashed,
-      passwordResetExpires: { $gt: Date.now() },
-    });
+    const { email, otp } = req.body;
+    const user = await User.findOne({ email }).select(
+      "+passwordResetOtp +passwordResetOtpExpires +passwordResetOtpAttempts"
+    );
 
     if (!user)
-      return res.status(400).json({ success: false, message: "Token không hợp lệ hoặc đã hết hạn" });
+      return res.status(400).json({ success: false, message: "OTP không hợp lệ hoặc đã hết hạn" });
 
-    user.password          = req.body.password;
-    user.passwordResetToken   = undefined;
-    user.passwordResetExpires = undefined;
-    user.refreshToken         = undefined; // đăng xuất tất cả thiết bị
+    if (!user.verifyPasswordResetOtp(otp)) {
+      const isExceeded = await handleInvalidOtpAttempt(user);
+      return res.status(400).json({
+        success: false,
+        message: isExceeded
+          ? "OTP đã sai quá số lần cho phép. Vui lòng yêu cầu mã OTP mới."
+          : "OTP không hợp lệ hoặc đã hết hạn",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "OTP hợp lệ. Bạn có thể đặt lại mật khẩu.",
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ─── RESET MẬT KHẨU BẰNG OTP ────────────────────────────────────────────────
+
+exports.resetPasswordWithOtp = async (req, res) => {
+  try {
+    const { email, otp, password } = req.body;
+    const user = await User.findOne({ email }).select(
+      "+passwordResetOtp +passwordResetOtpExpires +passwordResetOtpAttempts +refreshToken"
+    );
+
+    if (!user)
+      return res.status(400).json({ success: false, message: "OTP không hợp lệ hoặc đã hết hạn" });
+
+    if (!user.verifyPasswordResetOtp(otp)) {
+      const isExceeded = await handleInvalidOtpAttempt(user);
+      return res.status(400).json({
+        success: false,
+        message: isExceeded
+          ? "OTP đã sai quá số lần cho phép. Vui lòng yêu cầu mã OTP mới."
+          : "OTP không hợp lệ hoặc đã hết hạn",
+      });
+    }
+
+    user.password = password;
+    user.passwordResetOtp = undefined;
+    user.passwordResetOtpExpires = undefined;
+    user.passwordResetOtpAttempts = 0;
+    user.refreshToken = undefined; // đăng xuất tất cả thiết bị
     await user.save();
 
     res.status(200).json({ success: true, message: "Đặt lại mật khẩu thành công. Vui lòng đăng nhập lại." });

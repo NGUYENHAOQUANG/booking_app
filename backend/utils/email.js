@@ -21,31 +21,29 @@ const createMailtrapTransport = () => {
   });
 };
 
-exports.sendPasswordResetEmail = async ({ to, username, resetUrl }) => {
+exports.sendPasswordResetOtpEmail = async ({ to, fullName, otp }) => {
   const from = process.env.MAIL_FROM || "no-reply@booking-app.local";
   const transporter = createMailtrapTransport();
+  const expiresInMinutes = Number(process.env.PASSWORD_RESET_OTP_EXPIRES_MINUTES || 10);
 
-  const subject = "Dat lai mat khau tai khoan Booking Web";
+  const subject = "Ma OTP dat lai mat khau Booking Web";
   const text = [
-    `Xin chao ${username || "ban"},`,
+    `Xin chao ${fullName || "ban"},`,
     "",
     "Ban vua yeu cau dat lai mat khau.",
-    "Link dat lai mat khau (hieu luc 10 phut):",
-    resetUrl,
+    `Ma OTP cua ban la: ${otp}`,
+    `Ma OTP co hieu luc trong ${expiresInMinutes} phut.`,
     "",
     "Neu ban khong yeu cau, vui long bo qua email nay.",
   ].join("\n");
 
   const html = `
     <div style="font-family: Arial, sans-serif; line-height:1.6; color:#111;">
-      <p>Xin chao <strong>${username || "ban"}</strong>,</p>
+      <p>Xin chao <strong>${fullName || "ban"}</strong>,</p>
       <p>Ban vua yeu cau dat lai mat khau.</p>
-      <p>Link dat lai mat khau (hieu luc 10 phut):</p>
-      <p>
-        <a href="${resetUrl}" target="_blank" rel="noopener noreferrer">
-          ${resetUrl}
-        </a>
-      </p>
+      <p>Ma OTP cua ban la:</p>
+      <p style="font-size: 24px; font-weight: 700; letter-spacing: 4px;">${otp}</p>
+      <p>Ma OTP co hieu luc trong ${expiresInMinutes} phut.</p>
       <p>Neu ban khong yeu cau, vui long bo qua email nay.</p>
     </div>
   `;
