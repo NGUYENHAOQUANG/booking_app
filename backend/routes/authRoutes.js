@@ -3,20 +3,28 @@ const express = require("express");
 const router  = express.Router();
 const auth    = require("../controllers/authController");
 const { protect, restrictTo, hasPermission } = require("../middleware/authMiddleware");
+const {
+  validateRegister,
+  validateLogin,
+  validateRefreshToken,
+  validateForgotPassword,
+  validateResetPassword,
+  validateChangePassword,
+} = require("../middleware/authValidation");
 
 // ── Public ────────────────────────────────────────────────────────────────────
-router.post("/register",               auth.register);
-router.post("/login",                  auth.login);
-router.post("/refresh-token",          auth.refreshToken);
-router.post("/forgot-password",        auth.forgotPassword);
-router.patch("/reset-password/:token", auth.resetPassword);
+router.post("/register",               validateRegister,      auth.register);
+router.post("/login",                  validateLogin,         auth.login);
+router.post("/refresh-token",          validateRefreshToken,  auth.refreshToken);
+router.post("/forgot-password",        validateForgotPassword, auth.forgotPassword);
+router.patch("/reset-password/:token", validateResetPassword, auth.resetPassword);
 
 // ── Protected (cần access token) ──────────────────────────────────────────────
 router.use(protect);
 
 router.post("/logout",          auth.logout);
 router.get("/me",               auth.getMe);
-router.patch("/change-password", auth.changePassword);
+router.patch("/change-password", validateChangePassword, auth.changePassword);
 
 // ── Ví dụ phân quyền theo role ────────────────────────────────────────────────
 router.get("/admin-only",  restrictTo("admin"),              (req, res) =>

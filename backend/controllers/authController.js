@@ -49,8 +49,6 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password)
-      return res.status(400).json({ success: false, message: "Vui lòng nhập email và password" });
 
     const user = await User.findOne({ email })
       .select("+password +refreshToken")
@@ -87,8 +85,6 @@ exports.login = async (req, res) => {
 exports.refreshToken = async (req, res) => {
   try {
     const { refreshToken } = req.body;
-    if (!refreshToken)
-      return res.status(401).json({ success: false, message: "Không có refresh token" });
 
     // Verify chữ ký
     const decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET);

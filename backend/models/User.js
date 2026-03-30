@@ -2,6 +2,7 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
+const Role = require("./Role");
 
 const UserSchema = new mongoose.Schema(
   {
@@ -24,7 +25,11 @@ const UserSchema = new mongoose.Schema(
     password: {
       type: String,
       required: [true, "Password là bắt buộc"],
-      minlength: [6, "Password phải có ít nhất 6 ký tự"],
+      minlength: [8, "Password phải có ít nhất 8 ký tự"],
+      match: [
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/,
+        "Password phải có ít nhất 8 ký tự, gồm chữ thường, chữ hoa, số và ký tự đặc biệt",
+      ],
       select: false,
     },
 
@@ -62,20 +67,17 @@ UserSchema.virtual("isLocked").get(function () {
 // ─── HOOKS ────────────────────────────────────────────────────────────────────
 
 // Hash password trước khi lưu
-UserSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
+UserSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;
   this.password = await bcrypt.hash(this.password, 12);
   if (!this.isNew) this.passwordChangedAt = new Date(Date.now() - 1000);
-  next();
 });
 
 // Gán role mặc định nếu user mới chưa có role
-UserSchema.pre("save", async function (next) {
-  if (!this.isNew || this.role) return next();
-  const Role = mongoose.model("Role");
+UserSchema.pre("save", async function () {
+  if (!this.isNew || this.role) return;
   const defaultRole = await Role.findOne({ isDefault: true, isActive: true });
   if (defaultRole) this.role = defaultRole._id;
-  next();
 });
 
 // ─── METHODS ──────────────────────────────────────────────────────────────────
