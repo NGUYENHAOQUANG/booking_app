@@ -2,6 +2,7 @@
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const User = require("../models/User");
+const { sendPasswordResetEmail } = require("../utils/email");
 
 const JWT_SECRET          = process.env.JWT_SECRET          || "change_this_secret";
 const JWT_EXPIRES_IN      = process.env.JWT_EXPIRES_IN      || "15m";
@@ -130,14 +131,32 @@ exports.forgotPassword = async (req, res) => {
     const resetToken = user.createPasswordResetToken();
     await user.save({ validateBeforeSave: false });
 
-    // TODO: gửi resetToken qua email service (nodemailer / sendgrid...)
-    // Link dạng: https://yourapp.com/reset-password/<resetToken>
-    console.log("🔑 Reset token (dev only):", resetToken);
+    const clientUrl = process.env.CLIENT_URL || "http://localhost:3000";
+    const resetPath = process.env.RESET_PASSWORD_PATH || "/reset-password";
+    const normalizedClientUrl = clientUrl.endsWith("/") ? clientUrl.slice(0, -1) : clientUrl;
+    const normalizedResetPath = resetPath.startsWith("/") ? resetPath : `/${resetPath}`;
+    const resetUrl = `${normalizedClientUrl}${normalizedResetPath}/${resetToken}`;
+
+    try {
+      await sendPasswordResetEmail({
+        to: user.email,
+        username: user.username,
+        resetUrl,
+      });
+    } catch (mailErr) {
+      console.error("Send reset email failed:", mailErr.message);
+      user.passwordResetToken = undefined;
+      user.passwordResetExpires = undefined;
+      await user.save({ validateBeforeSave: false });
+      return res.status(500).json({
+        success: false,
+        message: "Không thể gửi email đặt lại mật khẩu. Vui lòng thử lại sau.",
+      });
+    }
 
     res.status(200).json({
       success: true,
-      message: "Link đặt lại mật khẩu đã gửi đến email (hiệu lực 10 phút)",
-      ...(process.env.NODE_ENV === "development" && { resetToken }),
+      message: "Email đặt lại mật khẩu đã được gửi. Vui lòng kiểm tra hộp thư.",
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
