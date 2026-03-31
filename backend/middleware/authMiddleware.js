@@ -8,11 +8,16 @@ const JWT_SECRET = process.env.JWT_SECRET || "change_this_secret";
 
 exports.protect = async (req, res, next) => {
   try {
-    const auth = req.headers.authorization;
-    if (!auth?.startsWith("Bearer "))
-      return res.status(401).json({ success: false, message: "Bạn chưa đăng nhập" });
+    let token = req.cookies?.accessToken;
 
-    const token = auth.split(" ")[1];
+    if (!token && req.headers.authorization?.startsWith("Bearer ")) {
+      token = req.headers.authorization.split(" ")[1];
+    }
+
+    if (!token) {
+      return res.status(401).json({ success: false, message: "Bạn chưa đăng nhập" });
+    }
+
     const decoded = jwt.verify(token, JWT_SECRET);
 
     const user = await User.findById(decoded.id).populate("role", "name displayName permissions");

@@ -84,9 +84,9 @@ export default function VerifyOTPPage() {
     setLoading(true);
     setError("");
     try {
-      await authService.verifyOTP({ email, code });
-      // Chuyển sang trang đặt lại mật khẩu, truyền email + code đã xác minh
-      navigate(ROUTES.RESET_PW, { state: { email, code } });
+      await authService.verifyOTP({ email, otp: code });
+      // Chuyển sang trang đặt lại mật khẩu, truyền email + otp đã xác minh
+      navigate(ROUTES.RESET_PW, { state: { email, otp: code } });
     } catch (err) {
       setError(err?.response?.data?.message || "Mã xác minh không đúng hoặc đã hết hạn");
       setOtp(Array(OTP_LENGTH).fill(""));

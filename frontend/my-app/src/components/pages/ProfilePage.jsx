@@ -1,10 +1,22 @@
 import { useState } from "react";
-import { User, Mail, Phone, MapPin, Camera, Save, Lock, ShieldCheck, Trash2 } from "lucide-react";
+import { User, Mail, Phone, MapPin, Camera, Save, Lock, ShieldCheck, Trash2, AlertCircle, CheckCircle2 } from "lucide-react";
 import useAuthStore from "@/store/authStore";
 
 const ProfilePage = () => {
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState({ type: "", text: "" });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    // Mock logic: sẽ gọi API cập nhật user content ở đây
+    setTimeout(() => {
+      setMessage({ type: "success", text: "Chưa có thay đổi nào được lưu (Tính năng đang phát triển)." });
+      setLoading(false);
+    }, 1000);
+  };
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-12">
@@ -32,8 +44,8 @@ const ProfilePage = () => {
                  </button>
               </div>
               <div>
-                 <h3 className="text-xl font-bold text-slate-900 leading-tight uppercase tracking-tight">{user?.username}</h3>
-                 <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1 italic">{user?.role || "Member"}</p>
+                 <h3 className="text-xl font-bold text-slate-900 leading-tight uppercase tracking-tight">{user?.fullName || user?.username}</h3>
+                 <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1 italic">{user?.role?.displayName || "Member"}</p>
               </div>
               <div className="pt-6 border-t border-slate-50 w-full">
                  <div className="flex justify-between items-center text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">
@@ -58,7 +70,13 @@ const ProfilePage = () => {
 
         {/* Right: Detailed Settings Form */}
         <div className="md:col-span-2 space-y-12">
-           <form className="bg-white rounded-[3rem] p-8 sm:p-12 border border-slate-50 shadow-sm space-y-10 group">
+           <form onSubmit={handleSubmit} className="bg-white rounded-[3rem] p-8 sm:p-12 border border-slate-50 shadow-sm space-y-10 group">
+              {message.text && (
+                <div className={`p-4 rounded-xl flex items-center gap-3 text-sm font-bold shadow-sm ${message.type === 'error' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
+                  {message.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle2 size={20} />}
+                  {message.text}
+                </div>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                  <div className="space-y-4">
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Tên hiển thị</label>
@@ -90,26 +108,12 @@ const ProfilePage = () => {
                  </div>
               </div>
 
-              <div className="pt-10 border-t border-slate-50">
-                 <h4 className="text-lg font-bold text-slate-900 mb-8 flex items-center gap-3 uppercase tracking-tight leading-tight"><Lock size={20} className="text-blue-600" /> Đổi mật khẩu</h4>
-                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                    <div className="space-y-4">
-                       <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Mật khẩu mới</label>
-                       <input type="password" placeholder="••••••••" className="w-full h-14 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all" />
-                    </div>
-                    <div className="space-y-4">
-                       <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Xác nhận mật khẩu</label>
-                       <input type="password" placeholder="••••••••" className="w-full h-14 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all" />
-                    </div>
-                 </div>
-              </div>
-
               <div className="pt-10 flex flex-col sm:flex-row gap-4 justify-between items-center border-t border-slate-50">
                  <button type="button" className="text-red-500 font-bold text-sm flex items-center gap-2 hover:underline p-2">
                     <Trash2 size={18} /> Vô hiệu hóa tài khoản
                  </button>
-                 <button type="submit" className="h-16 px-12 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold flex items-center gap-3 shadow-2xl shadow-blue-200 active:scale-95 transition-all">
-                    Lưu các thay đổi <Save size={20} />
+                 <button type="submit" disabled={loading} className="h-16 px-12 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-2xl font-bold flex items-center gap-3 shadow-2xl shadow-blue-200 active:scale-95 transition-all">
+                    {loading ? "Đang xử lý..." : "Lưu các thay đổi"} <Save size={20} />
                  </button>
               </div>
            </form>

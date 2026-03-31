@@ -35,24 +35,29 @@ const defaultRoles = [
   },
 ];
 
-async function seed() {
-  await mongoose.connect(MONGO_URI);
-  console.log("✅ Connected to MongoDB");
-
+async function seedRoles() {
   for (const roleData of defaultRoles) {
     await Role.findOneAndUpdate(
       { name: roleData.name },
       roleData,
-      { upsert: true, new: true } // Tạo mới nếu chưa có, cập nhật nếu đã có
+      { upsert: true, new: true }
     );
     console.log(`✔  Role "${roleData.name}" ready`);
   }
-
   console.log("🌱 Seed roles hoàn tất!");
-  await mongoose.disconnect();
 }
 
-seed().catch((err) => {
-  console.error("❌ Seed failed:", err);
-  process.exit(1);
-});
+module.exports = { seedRoles };
+
+if (require.main === module) {
+  mongoose.connect(MONGO_URI)
+    .then(async () => {
+      console.log("✅ Connected to MongoDB");
+      await seedRoles();
+      await mongoose.disconnect();
+    })
+    .catch((err) => {
+      console.error("❌ Seed failed:", err);
+      process.exit(1);
+    });
+}

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Mail, Phone, User, Lock } from "lucide-react";
+import toast from "react-hot-toast";
 import AuthSidePanel from "./AuthSidePanel";
 import { ROUTES } from "@/constants/routes";
 import { isValidEmail, isValidPhone, isStrongPassword } from "@/utils/validators";
@@ -97,18 +98,26 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       const res = await register({
-        username: form.fullName, // Giả định backend dùng username thay vì fullName
+        fullName: form.fullName,
         email: form.email,
-        phone: form.phone,
+        phoneNumber: form.phone,
         password: form.password,
+        acceptTerms: form.agreeTerms,
+        allowPromotions: form.agreeMarketing,
       });
       if (res.success) {
+        toast.success("Đăng ký tài khoản thành công!");
         navigate(ROUTES.LOGIN, { state: { registerSuccess: true } });
       } else {
         setApiError(res.error);
+        toast.error(res.error);
       }
     } catch (err) {
-      setApiError("Đăng ký thất bại, vui lòng thử lại sau.");
+      const response = err?.response?.data;
+      const detailedError = response?.errors?.[0]?.message;
+      const msg = detailedError || response?.message || "Đăng ký thất bại, vui lòng thử lại sau.";
+      setApiError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }

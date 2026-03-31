@@ -1,31 +1,28 @@
 import { create } from "zustand";
+import Cookies from "js-cookie";
 import { authService } from "@/services/authService";
-import { ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY } from "@/constants/config";
 
 const useAuthStore = create((set) => ({
   user: null,
-  accessToken: localStorage.getItem(ACCESS_TOKEN_KEY) || null,
-  refreshToken: localStorage.getItem(REFRESH_TOKEN_KEY) || null,
+  isLoggedIn: Cookies.get(import.meta.env.VITE_IS_LOGGED_IN_KEY) === "true",
   loading: false,
 
-  setTokens: (accessToken, refreshToken) => {
-    localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-    if (refreshToken) localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-    set({ accessToken, refreshToken });
-  },
-
-  setUser: (user) => set({ user }),
+  setUser: (user) => set({ user, isLoggedIn: true }),
 
   login: async (credentials) => {
     set({ loading: true });
     try {
-      const { data } = await authService.login(credentials);
-      localStorage.setItem(ACCESS_TOKEN_KEY, data.accessToken);
-      localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
-      set({ user: data.user, accessToken: data.accessToken, refreshToken: data.refreshToken });
-      return { success: true };
+      const response = await authService.login(credentials);
+      // Backend trả về { success: true, data: { user }, ... }
+      if (response.data.success) {
+        set({ user: response.data.data.user, isLoggedIn: true });
+        return { success: true };
+      }
+      return { success: false, error: response.data.message || "Đăng nhập thất bại" };
     } catch (error) {
-      return { success: false, error: error.response?.data?.message || "Đăng nhập thất bại" };
+      // Ưu tiên lấy message chi tiết từ Backend
+      const msg = error.response?.data?.message || error.message || "Lỗi kết nối máy chủ";
+      return { success: false, error: msg };
     } finally {
       set({ loading: false });
     }
@@ -34,32 +31,49 @@ const useAuthStore = create((set) => ({
   register: async (formData) => {
     set({ loading: true });
     try {
-      await authService.register(formData);
-      return { success: true };
+      const response = await authService.register(formData);
+      if (response.data.success) {
+        set({ user: response.data.data.user, isLoggedIn: true });
+        return { success: true };
+      }
+      return { success: false, error: response.data.message || "Đăng ký thất bại" };
     } catch (error) {
-      return { success: false, error: error.response?.data?.message || "Đăng ký thất bại" };
+      const msg = error.response?.data?.message || error.message || "Lỗi kết nối máy chủ";
+      return { success: false, error: msg };
     } finally {
       set({ loading: false });
     }
   },
 
-  logout: async () => {
-    try { await authService.logout(); } catch (e) { /* ignore */ }
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
-    set({ user: null, accessToken: null, refreshToken: null });
+  logout: async (skipApi = false) => {
+    // 1. Xóa state ngay lập tức (UI phản hồi tức thì)
+    set({ user: null, isLoggedIn: false });
+    Cookies.remove(import.meta.env.VITE_IS_LOGGED_IN_KEY);
+
+    if (skipApi) return;
+
+    // 2. Gọi logout backend (Nếu 401 thì axios interceptor đã chặn loop)
+    try { 
+      await authService.logout(); 
+    } catch (e) { 
+      console.warn("Backend logout failed or session already dead"); 
+    }
   },
 
   fetchMe: async () => {
-    if (!localStorage.getItem(ACCESS_TOKEN_KEY)) return;
+    if (!Cookies.get(import.meta.env.VITE_IS_LOGGED_IN_KEY)) return;
     try {
-      const { data } = await authService.getMe();
-      set({ user: data.user });
+      const response = await authService.getMe();
+      if (response.data.success) {
+        set({ user: response.data.data.user, isLoggedIn: true });
+      } else {
+        set({ user: null, isLoggedIn: false });
+        Cookies.remove(import.meta.env.VITE_IS_LOGGED_IN_KEY);
+      }
     } catch (error) {
-      // Nếu lỗi 401 thì axios interceptor sẽ xử lý refresh token
-      // Nếu vẫn lỗi thì logout
       if (error.response?.status === 401) {
-        // useAuthStore.getState().logout();
+        set({ user: null, isLoggedIn: false });
+        Cookies.remove(import.meta.env.VITE_IS_LOGGED_IN_KEY);
       }
     }
   },

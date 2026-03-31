@@ -33,7 +33,7 @@ const DashboardPage = () => {
       {/* --- Header --- */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight leading-tight">Chào mừng quay lại, {user?.username}! 👋</h1>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight leading-tight">Chào mừng quay lại, {user?.fullName}! 👋</h1>
           <p className="text-slate-400 text-sm">Đây là tổng quan về hoạt động của bạn trong 30 ngày qua.</p>
         </div>
         <div className="flex items-center gap-3">

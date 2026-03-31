@@ -41,7 +41,30 @@ const sendTokens = async (user, statusCode, res) => {
   user.password     = undefined;
   user.refreshToken = undefined;
 
-  res.status(statusCode).json({ success: true, accessToken, refreshToken, data: { user } });
+  const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+  };
+
+  res.cookie("accessToken", accessToken, {
+    ...cookieOptions,
+    maxAge: 15 * 60 * 1000, // 15 phút
+  });
+
+  res.cookie("refreshToken", refreshToken, {
+    ...cookieOptions,
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
+  });
+
+  res.cookie("isLoggedIn", "true", {
+    httpOnly: false,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
+  });
+
+  res.status(statusCode).json({ success: true, data: { user } });
 };
 
 // ─── ĐĂNG KÝ ─────────────────────────────────────────────────────────────────
@@ -113,7 +136,11 @@ exports.login = async (req, res) => {
 
 exports.refreshToken = async (req, res) => {
   try {
-    const { refreshToken } = req.body;
+    const refreshToken = req.cookies.refreshToken;
+    
+    if (!refreshToken) {
+      return res.status(401).json({ success: false, message: "Không tìm thấy token. Vui lòng đăng nhập lại." });
+    }
 
     // Verify chữ ký
     const decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET);
@@ -142,6 +169,11 @@ exports.logout = async (req, res) => {
   try {
     // Xóa refresh token → vô hiệu hóa hoàn toàn
     await User.findByIdAndUpdate(req.user._id, { $unset: { refreshToken: 1 } });
+    
+    res.clearCookie('accessToken');
+    res.clearCookie('refreshToken');
+    res.clearCookie('isLoggedIn');
+
     res.status(200).json({ success: true, message: "Đăng xuất thành công" });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

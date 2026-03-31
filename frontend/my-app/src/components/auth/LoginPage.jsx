@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Eye, EyeOff, Mail, Phone, Lock } from "lucide-react";
+import toast from "react-hot-toast";
 import AuthSidePanel from "./AuthSidePanel";
 import { ROUTES } from "@/constants/routes";
 import { isValidEmail, isValidPhone } from "@/utils/validators";
@@ -21,11 +22,18 @@ export default function LoginPage() {
   const login    = useAuthStore((s) => s.login);
   const navigate = useNavigate();
   const location = useLocation();
-  const from     = location.state?.from?.pathname || ROUTES.DASHBOARD;
+  
+  // Lấy đường dẫn trước đó hoặc mặc định về Dashboard
+  const from = location.state?.from?.pathname || ROUTES.DASHBOARD || "/";
 
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
 
-  const switchTab = (t) => { setTab(t); setForm({ identifier: "", password: "" }); setErrors({}); setApiError(""); };
+  const switchTab = (t) => { 
+    setTab(t); 
+    setForm({ identifier: "", password: "" }); 
+    setErrors({}); 
+    setApiError(""); 
+  };
 
   const validate = () => {
     const e = {};
@@ -45,18 +53,27 @@ export default function LoginPage() {
     const errs = validate();
     setErrors(errs);
     setApiError("");
+
     if (Object.keys(errs).length > 0) return;
+
     setLoading(true);
-    try {
-      const payload = tab === "email"
-        ? { email: form.identifier, password: form.password }
-        : { phone: form.identifier, password: form.password };
-      await login(payload);
-      navigate(from, { replace: true });
-    } catch (err) {
-      setApiError(err?.response?.data?.message || "Email hoặc mật khẩu không đúng");
-    } finally {
-      setLoading(false);
+    const payload = tab === "email"
+      ? { email: form.identifier, password: form.password }
+      : { phoneNumber: form.identifier, password: form.password };
+
+    // useAuthStore.login đã handle try/catch và trả về {success, error}
+    const res = await login(payload);
+    setLoading(false);
+
+    if (res.success) {
+      toast.success("Đăng nhập thành công!");
+      // Sử dụng setTimeout cực ngắn để đảm bảo Toast hiển thị và Store đã update xong
+      setTimeout(() => {
+        navigate(from, { replace: true });
+      }, 100);
+    } else {
+      setApiError(res.error);
+      toast.error(res.error);
     }
   };
 
@@ -64,16 +81,13 @@ export default function LoginPage() {
     <div className="min-h-screen flex">
       <AuthSidePanel image={SIDE_IMAGE} />
 
-      {/* Panel phải */}
       <div className="flex-1 flex items-center justify-center bg-white px-8 py-10">
         <div className="w-full max-w-md">
-          {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-black text-gray-900 mb-2">Chào mừng trở lại</h1>
             <p className="text-gray-400 text-sm">Vui lòng đăng nhập để bắt đầu hành trình của bạn!</p>
           </div>
 
-          {/* Social */}
           <div className="grid grid-cols-2 gap-3 mb-5">
             <button className="flex items-center justify-center gap-2 border border-gray-200 rounded-xl py-2.5 bg-white hover:bg-gray-50 text-sm font-semibold text-gray-700 transition-all">
               <GoogleIcon /> Google
@@ -83,14 +97,12 @@ export default function LoginPage() {
             </button>
           </div>
 
-          {/* Divider */}
           <div className="flex items-center gap-3 mb-5">
             <div className="flex-1 h-px bg-gray-200" />
             <span className="text-sm text-gray-400">hoặc đăng nhập bằng email</span>
             <div className="flex-1 h-px bg-gray-200" />
           </div>
 
-          {/* Tab */}
           <div className="flex border-b border-gray-200 mb-5">
             {[["email", "Email"], ["phone", "Số điện thoại"]].map(([key, label]) => (
               <button
@@ -108,14 +120,12 @@ export default function LoginPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
-            {/* API error */}
             {apiError && (
               <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-2.5">
                 {apiError}
               </div>
             )}
 
-            {/* Identifier */}
             <div className="flex flex-col gap-1">
               <label className="text-sm font-semibold text-gray-700">
                 {tab === "email" ? "Email" : "Số điện thoại"}
@@ -138,7 +148,6 @@ export default function LoginPage() {
               {errors.identifier && <p className="text-xs text-red-500">{errors.identifier}</p>}
             </div>
 
-            {/* Password */}
             <div className="flex flex-col gap-1">
               <label className="text-sm font-semibold text-gray-700">Mật khẩu</label>
               <div className={[
@@ -162,7 +171,6 @@ export default function LoginPage() {
               {errors.password && <p className="text-xs text-red-500">{errors.password}</p>}
             </div>
 
-            {/* Remember + Forgot */}
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 cursor-pointer text-sm text-teal-600">
                 <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} className="accent-teal-500" />
@@ -173,7 +181,6 @@ export default function LoginPage() {
               </Link>
             </div>
 
-            {/* Submit */}
             <button
               type="submit"
               disabled={loading}

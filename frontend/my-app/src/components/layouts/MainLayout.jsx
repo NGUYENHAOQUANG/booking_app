@@ -9,16 +9,19 @@ import {
   History, 
   LogOut, 
   Settings,
-  Briefcase
+  Briefcase,
+  Lock
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import useAuthStore from "@/store/authStore";
+import ChangePasswordModal from "@/components/auth/ChangePasswordModal";
 
 const MainLayout = () => {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
   // Handle scroll for navbar transparency
@@ -82,8 +85,8 @@ const MainLayout = () => {
               {user ? (
                 <div className="flex items-center gap-4 pl-4 border-l border-slate-200">
                   <div className="flex flex-col items-end">
-                    <span className="text-sm font-semibold text-slate-800">{user.username}</span>
-                    <span className="text-xs text-slate-400 capitalize">{user.role || 'User'}</span>
+                    <span className="text-sm font-semibold text-slate-800">{user.fullName}</span>
+                    <span className="text-xs text-slate-400 capitalize">{user.role?.displayName || 'User'}</span>
                   </div>
                   <div className="relative group">
                     <button className="w-10 h-10 rounded-full bg-slate-200 border-2 border-white shadow-sm overflow-hidden transform group-hover:scale-105 transition-transform">
@@ -100,6 +103,9 @@ const MainLayout = () => {
                       <Link to="/profile" className="flex items-center gap-3 px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 transition-colors">
                         <Settings size={16} /> Thông tin cá nhân
                       </Link>
+                      <button onClick={() => setIsPasswordModalOpen(true)} className="flex items-center gap-3 w-full text-left px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 transition-colors border-t border-slate-50">
+                        <Lock size={16} /> Đổi mật khẩu
+                      </button>
                       <button onClick={handleLogout} className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-500 hover:bg-red-50 transition-colors border-t border-slate-50">
                         <LogOut size={16} /> Đăng xuất
                       </button>
@@ -169,6 +175,8 @@ const MainLayout = () => {
           </div>
         </div>
       </nav>
+
+      <ChangePasswordModal isOpen={isPasswordModalOpen} onClose={() => setIsPasswordModalOpen(false)} />
 
       {/* --- Main Content --- */}
       <main className="pt-24 pb-20">

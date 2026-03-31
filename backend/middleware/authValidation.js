@@ -1,5 +1,5 @@
 // middleware/authValidation.js
-const { body } = require("express-validator");
+const { body, cookie } = require("express-validator");
 const { validateRequest } = require("./validationMiddleware");
 
 const PASSWORD_MESSAGE =
@@ -83,7 +83,7 @@ exports.validateLogin = [
 ];
 
 exports.validateRefreshToken = [
-  body("refreshToken")
+  cookie("refreshToken")
     .notEmpty()
     .withMessage("Không có refresh token")
     .bail()

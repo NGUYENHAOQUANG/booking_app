@@ -1,15 +1,15 @@
 // src/services/authService.js
-import api from "./axiosInstance";
+import api from "./Axiosinstance";
 
 export const authService = {
-  register:       (data)        => api.post("/auth/register", data),
-  login:          (data)        => api.post("/auth/login", data),
-  logout:         ()            => api.post("/auth/logout"),
-  refreshToken:   (data)        => api.post("/auth/refresh-token", data),
+  register:       (data)        => api.post("/auth/register", data, { bypassAuthInterceptor: true }),
+  login:          (data)        => api.post("/auth/login", data, { bypassAuthInterceptor: true }),
+  logout:         ()            => api.post("/auth/logout", {}, { bypassAuthInterceptor: true }),
+  refreshToken:   ()            => api.post("/auth/refresh-token", {}, { bypassAuthInterceptor: true }),
   getMe:          ()            => api.get("/auth/me"),
 
-  forgotPassword: (email)       => api.post("/auth/forgot-password", { email }),
-  verifyOTP:      (data)        => api.post("/auth/verify-otp", data),       // { email, code }
-  resetPassword:  (code, data)  => api.patch(`/auth/reset-password/${code}`, data),
+  forgotPassword: (email)       => api.post("/auth/forgot-password", { email }, { bypassAuthInterceptor: true }),
+  verifyOTP:      (data)        => api.post("/auth/forgot-password/verify-otp", data, { bypassAuthInterceptor: true }),
+  resetPassword:  (data)        => api.patch("/auth/reset-password", data, { bypassAuthInterceptor: true }),
   changePassword: (data)        => api.patch("/auth/change-password", data),
 };

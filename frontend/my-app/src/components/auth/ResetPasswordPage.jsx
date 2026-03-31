@@ -61,7 +61,7 @@ function PasswordField({ label, placeholder, value, onChange, error }) {
 export default function ResetPasswordPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { email, code } = location.state || {};
+  const { email, otp } = location.state || {};
 
   const [form,    setForm]    = useState({ password: "", confirmPassword: "" });
   const [errors,  setErrors]  = useState({});
@@ -89,7 +89,11 @@ export default function ResetPasswordPage() {
     if (Object.keys(errs).length > 0) return;
     setLoading(true);
     try {
-      await authService.resetPassword(code, { password: form.password, confirmPassword: form.confirmPassword });
+      await authService.resetPassword({ 
+        email, 
+        otp, 
+        password: form.password 
+      });
       navigate(ROUTES.LOGIN, { state: { resetSuccess: true } });
     } catch (err) {
       setErrors({ api: err?.response?.data?.message || "Đặt lại mật khẩu thất bại" });
