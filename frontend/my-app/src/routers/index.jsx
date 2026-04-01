@@ -19,7 +19,7 @@ import RegisterPage from "../page/RegisterPage";
 import NotFoundPage from "../page/NotFoundPage";
 
 // TODO: Thay bằng giá trị thực từ AuthContext / Redux store
-const isAuthenticated = false;
+const isAuthenticated = true;
 const isAdmin = false;
 
 const router = createBrowserRouter([
