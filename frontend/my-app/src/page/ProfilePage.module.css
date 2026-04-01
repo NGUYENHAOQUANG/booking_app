@@ -29,12 +29,6 @@
   box-shadow: 0 10px 24px rgba(31, 44, 39, 0.14);
   overflow: hidden;
   margin-top: 3.2rem;
-  transition: transform 260ms ease, box-shadow 260ms ease;
-}
-
-.sidebar:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 14px 30px rgba(31, 44, 39, 0.18);
 }
 
 .userHeader {
@@ -42,6 +36,10 @@
   gap: 0.75rem;
   align-items: center;
   padding: 1rem 0.9rem 0.65rem;
+}
+
+.userInfo {
+  min-width: 0;
 }
 
 .userAvatar {
@@ -55,10 +53,13 @@
 
 .userEmail {
   margin: 0;
-  font-size: 2rem;
+  font-size: 1.55rem;
   line-height: 1.05;
   letter-spacing: -0.02em;
   font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .userNickname {
@@ -192,6 +193,14 @@
   min-height: 525px;
 }
 
+.personalPanel > .panelHeader + * {
+  margin-top: 1.1rem;
+}
+
+.personalPanel > :not(.panelHeader) + :not(.panelHeader) {
+  margin-top: 1.1rem;
+}
+
 .panelHeader {
   min-height: 50px;
   border-bottom: 1.5px solid var(--mint);
@@ -228,6 +237,10 @@
   transition: border-color 220ms ease, box-shadow 220ms ease;
 }
 
+.dateInput {
+  color: #4a4a4a;
+}
+
 .fieldGroup input:focus,
 .fieldGroup select:focus {
   outline: none;
@@ -241,12 +254,6 @@
 
 .fieldGroup select {
   color: #4a4a4a;
-}
-
-.panel .fieldGroup + .fieldGroup,
-.inlineFields,
-.actionField {
-  margin-top: 1rem;
 }
 
 .panel {
@@ -275,13 +282,17 @@
 
 .actionField {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.75rem;
+  grid-template-columns: minmax(0, 1fr) 180px;
+  gap: 0.9rem;
   align-items: end;
 }
 
 .outlineBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 42px;
+  width: 100%;
   border-radius: 5px;
   border: 2px solid var(--mint);
   background: #fff;
@@ -300,7 +311,6 @@
 }
 
 .saveRow {
-  margin-top: 1.1rem;
   padding: 0 1rem;
   display: flex;
   justify-content: flex-end;
