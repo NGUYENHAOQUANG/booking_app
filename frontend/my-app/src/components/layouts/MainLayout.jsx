@@ -15,6 +15,7 @@ import {
 import { useState, useEffect } from "react";
 import useAuthStore from "@/store/authStore";
 import ChangePasswordModal from "@/components/auth/ChangePasswordModal";
+import { ROUTES } from "@/constants/routes";
 
 const MainLayout = () => {
   const { user, logout } = useAuthStore();
@@ -47,90 +48,40 @@ const MainLayout = () => {
     <div className="min-h-screen bg-slate-50 font-sans selection:bg-blue-100 selection:text-blue-700">
       {/* --- Navbar --- */}
       <nav className={`fixed top-0 z-50 w-full transition-all duration-300 ${
-        scrolled ? "bg-white/80 backdrop-blur-md shadow-sm border-b border-slate-100 py-3" : "bg-transparent py-5"
+        scrolled ? "bg-white/90 backdrop-blur-md shadow-sm border-b border-slate-100 py-3" : "bg-white py-4 border-b border-slate-50"
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
-            {/* Logo */}
             <Link to="/" className="flex items-center gap-2 group">
-              <div className="bg-blue-600 p-2 rounded-xl text-white group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-blue-200">
-                <Briefcase size={22} strokeWidth={2.5} />
+              <div className="flex items-center">
+                <span className="text-2xl font-bold tracking-tight text-slate-800">
+                  <span className="text-[#10967d]">Viva</span>Vivu
+                </span>
               </div>
-              <span className={`text-xl font-bold tracking-tight ${scrolled ? "text-slate-800" : "text-slate-900"}`}>
-                Booking <span className="text-blue-600">App</span>
-              </span>
             </Link>
 
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-6">
-              {navLinks.filter(link => !link.private || (link.private && user)).map((link) => (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  className={`text-sm font-medium transition-colors hover:text-blue-600 ${
-                    location.pathname === link.path ? "text-blue-600" : "text-slate-600"
-                  }`}
-                >
-                  {link.name}
-                </Link>
-              ))}
-            </div>
-
-            {/* User Actions */}
-            <div className="hidden md:flex items-center gap-4">
-              <button className="p-2 text-slate-500 hover:text-blue-600 transition-colors">
-                <Search size={20} />
-              </button>
+            <div className="hidden md:flex items-center gap-8">
+              <Link to="/" className="text-sm font-semibold text-[#10967d]">Trang chủ</Link>
+              <div className="flex items-center gap-1 cursor-pointer">
+                <img src="https://flagcdn.com/w20/vn.png" alt="VN" className="w-5 h-4 object-cover" />
+                <span className="text-sm font-semibold text-slate-700 uppercase">VN</span>
+                <Menu size={14} className="text-slate-400 rotate-90" />
+              </div>
               
-              {user ? (
-                <div className="flex items-center gap-4 pl-4 border-l border-slate-200">
-                  <div className="flex flex-col items-end">
-                    <span className="text-sm font-semibold text-slate-800">{user.fullName}</span>
-                    <span className="text-xs text-slate-400 capitalize">{user.role?.displayName || 'User'}</span>
-                  </div>
-                  <div className="relative group">
-                    <button className="w-10 h-10 rounded-full bg-slate-200 border-2 border-white shadow-sm overflow-hidden transform group-hover:scale-105 transition-transform">
-                      {user.avatar ? (
-                        <img src={user.avatar} alt={user.username} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-blue-50 text-blue-600">
-                          <User size={20} />
-                        </div>
-                      )}
-                    </button>
-                    {/* Dropdown Menu */}
-                    <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-slate-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0 overflow-hidden">
-                      <Link to="/profile" className="flex items-center gap-3 px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 transition-colors">
-                        <Settings size={16} /> Thông tin cá nhân
-                      </Link>
-                      <button onClick={() => setIsPasswordModalOpen(true)} className="flex items-center gap-3 w-full text-left px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 transition-colors border-t border-slate-50">
-                        <Lock size={16} /> Đổi mật khẩu
-                      </button>
-                      <button onClick={handleLogout} className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-500 hover:bg-red-50 transition-colors border-t border-slate-50">
-                        <LogOut size={16} /> Đăng xuất
-                      </button>
-                    </div>
-                  </div>
-                </div>
+              {!user ? (
+                <>
+                  <Link to={ROUTES.LOGIN} className="text-sm font-semibold text-slate-700 hover:text-[#10967d] transition-colors">Đăng nhập</Link>
+                  <Link to={ROUTES.REGISTER} className="text-sm font-semibold text-slate-700 hover:text-[#10967d] transition-colors">Đăng ký</Link>
+                </>
               ) : (
-                <div className="flex items-center gap-2">
-                  <Link to="/login" className="px-5 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">
-                    Đăng nhập
-                  </Link>
-                  <Link to="/register" className="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-full shadow-lg shadow-blue-200 transition-all active:scale-95">
-                    Tham gia ngay
-                  </Link>
+                <div className="relative group">
+                  <button className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                    <span>{user.fullName}</span>
+                    <User size={18} />
+                  </button>
                 </div>
               )}
             </div>
-
-            {/* Mobile Menu Button */}
-            <button 
-              className="md:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-            >
-              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
           </div>
         </div>
 
@@ -179,56 +130,72 @@ const MainLayout = () => {
       <ChangePasswordModal isOpen={isPasswordModalOpen} onClose={() => setIsPasswordModalOpen(false)} />
 
       {/* --- Main Content --- */}
-      <main className="pt-24 pb-20">
+      <main className="min-h-screen">
         <Outlet />
       </main>
 
       {/* --- Footer --- */}
-      <footer className="bg-white border-t border-slate-100 pt-16 pb-8">
+      <footer className="bg-white border-t border-slate-100 pt-20 pb-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
-            <div className="col-span-1 md:col-span-1">
-              <Link to="/" className="flex items-center gap-2 mb-6">
-                <div className="bg-blue-600 p-2 rounded-xl text-white">
-                  <Briefcase size={20} />
-                </div>
-                <span className="text-xl font-bold tracking-tight">Booking <span className="text-blue-600">App</span></span>
-              </Link>
-              <p className="text-slate-500 text-sm leading-relaxed">
-                Nền tảng đặt phòng khách sạn hàng đầu Việt Nam. Mang đến cho bạn kỳ nghỉ tuyệt vời với giá cả ưu đãi nhất.
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 lg:gap-24">
+            {/* Brand and Social */}
+            <div className="space-y-6">
+              <Link to="/" className="text-2xl font-bold text-[#10967d]">VivaVivu</Link>
+              <p className="text-slate-400 text-sm leading-relaxed">
+                We are vuyp pro hehehehehehehe heheheheheheheh
               </p>
+              <div className="flex items-center gap-4">
+                <a href="#" className="w-8 h-8 rounded-full flex items-center justify-center transition-transform hover:scale-110">
+                  <img src="https://img.icons8.com/color/48/instagram-new--v1.png" className="w-full h-full" alt="IG" />
+                </a>
+                <a href="#" className="w-8 h-8 rounded-full flex items-center justify-center transition-transform hover:scale-110">
+                  <img src="https://img.icons8.com/color/48/facebook-new.png" className="w-full h-full" alt="FB" />
+                </a>
+                <a href="#" className="w-8 h-8 rounded-full flex items-center justify-center transition-transform hover:scale-110 border border-slate-100 overflow-hidden bg-white">
+                  <img src="https://img.icons8.com/color/48/google-logo.png" className="w-full h-full p-1" alt="G" />
+                </a>
+              </div>
             </div>
+
+            {/* Company Link */}
             <div>
-              <h4 className="font-bold text-slate-900 mb-6">Dịch vụ</h4>
-              <ul className="space-y-4 text-sm text-slate-500">
-                <li><Link to="/search" className="hover:text-blue-600 transition-colors">Tìm phòng khách sạn</Link></li>
-                <li><Link to="/" className="hover:text-blue-600 transition-colors">Ưu đãi hôm nay</Link></li>
-                <li><Link to="/" className="hover:text-blue-600 transition-colors">Đặc quyền VIP</Link></li>
+              <h4 className="text-sm font-bold text-[#10967d] uppercase tracking-wider mb-6">Công ty</h4>
+              <ul className="space-y-4">
+                <li><Link to="#" className="text-sm text-slate-500 hover:text-[#10967d] transition-colors">Về chúng tôi</Link></li>
+                <li><Link to="#" className="text-sm text-slate-500 hover:text-[#10967d] transition-colors">Tuyển dụng</Link></li>
+                <li><Link to="#" className="text-sm text-slate-500 hover:text-[#10967d] transition-colors">Thông báo</Link></li>
               </ul>
             </div>
+
+            {/* Support Links */}
             <div>
-              <h4 className="font-bold text-slate-900 mb-6">Hỗ trợ</h4>
-              <ul className="space-y-4 text-sm text-slate-500">
-                <li><Link to="/" className="hover:text-blue-600 transition-colors">Trung tâm trợ giúp</Link></li>
-                <li><Link to="/" className="hover:text-blue-600 transition-colors">Chính sách hoàn tiền</Link></li>
-                <li><Link to="/" className="hover:text-blue-600 transition-colors">Liên hệ</Link></li>
+              <h4 className="text-sm font-bold text-[#10967d] uppercase tracking-wider mb-6">Support</h4>
+              <ul className="space-y-4">
+                <li><Link to="#" className="text-sm text-slate-500 hover:text-[#10967d] transition-colors">Trung tâm hỗ trợ</Link></li>
+                <li><Link to="#" className="text-sm text-slate-500 hover:text-[#10967d] transition-colors">Thông tin an toàn</Link></li>
+                <li><Link to="#" className="text-sm text-slate-500 hover:text-[#10967d] transition-colors">Chính sách</Link></li>
               </ul>
             </div>
+
+            {/* Newsletter */}
             <div>
-              <h4 className="font-bold text-slate-900 mb-6">Kết nối</h4>
-              <div className="flex gap-4">
-                <a href="#" className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-all"><Facebook size={18} /></a>
-                <a href="#" className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-all"><Twitter size={18} /></a>
-                <a href="#" className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-all"><Instagram size={18} /></a>
+              <h4 className="text-sm font-bold text-[#10967d] uppercase tracking-wider mb-6">Bản tin</h4>
+              <p className="text-xs text-slate-400 mb-6">Đăng ký để nhận ưu đãi đặc quyền và thông tin cập nhật</p>
+              <div className="space-y-3">
+                <input 
+                  type="email" 
+                  placeholder="Tải khoản email của bạn" 
+                  className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:border-[#10967d] transition-colors"
+                />
+                <button className="w-full py-4 bg-[#10967d] text-white rounded-2xl font-bold text-sm hover:brightness-110 transition-all shadow-lg shadow-[#10967d]/20 active:scale-[0.98]">
+                  Đăng ký
+                </button>
               </div>
             </div>
           </div>
-          <div className="pt-8 border-t border-slate-50 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-400">
-            <p>© 2024 Booking App. Tất cả quyền được bảo lưu.</p>
-            <div className="flex gap-6">
-              <a href="#" className="hover:text-slate-600 transition-colors">Điều khoản dịch vụ</a>
-              <a href="#" className="hover:text-slate-600 transition-colors">Chính sách bảo mật</a>
-            </div>
+
+          <div className="mt-16 pt-8 border-t border-slate-50 text-center">
+            <p className="text-[10px] text-slate-300">© 2024 VivaVivu. All rights reserved.</p>
           </div>
         </div>
       </footer>
