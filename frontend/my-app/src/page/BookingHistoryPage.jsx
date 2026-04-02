@@ -106,8 +106,12 @@ const BookingHistoryPage = () => {
           </div>
 
           <div className={styles.listPanel}>
-            {bookingHistory.map((ticket) => (
-              <article key={ticket.id} className={styles.ticketCard}>
+            {bookingHistory.map((ticket, index) => (
+              <article
+                key={ticket.id}
+                className={styles.ticketCard}
+                style={{ "--card-delay": `${index * 90}ms` }}
+              >
                 <div className={styles.transportBlock}>
                   <h3 className={styles.operatorName}>{ticket.operator}</h3>
                   <p className={styles.vehicleInfo}>{ticket.vehicle}</p>

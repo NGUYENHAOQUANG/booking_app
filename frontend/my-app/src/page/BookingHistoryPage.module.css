@@ -156,7 +156,9 @@
 .listPanel {
   border: 1.5px solid var(--mint);
   border-radius: 8px;
-  background: #fff;
+  background:
+    radial-gradient(circle at 102% -4%, rgba(72, 183, 151, 0.16), transparent 28%),
+    #fff;
   box-shadow: 0 10px 24px rgba(31, 44, 39, 0.12);
   overflow: hidden;
   padding: 0.85rem;
@@ -166,6 +168,7 @@
 }
 
 .ticketCard {
+  position: relative;
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 1rem;
@@ -173,7 +176,38 @@
   grid-template-columns: 1.55fr 0.9fr 0.9fr 1fr 0.95fr;
   gap: 0.6rem;
   align-items: center;
-  animation: cardEnter 420ms ease both;
+  background: linear-gradient(120deg, #fff 0%, #fcfefd 100%);
+  transform-origin: center;
+  animation: cardEnter 560ms cubic-bezier(0.2, 0.7, 0.22, 1) var(--card-delay, 0ms)
+    both;
+  transition: transform 240ms ease, box-shadow 240ms ease, border-color 240ms ease;
+}
+
+.ticketCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    118deg,
+    transparent 20%,
+    rgba(72, 183, 151, 0.14) 48%,
+    transparent 72%
+  );
+  transform: translateX(-120%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ticketCard:hover {
+  border-color: rgba(54, 160, 130, 0.45);
+  transform: translateY(-4px) scale(1.008);
+  box-shadow: 0 14px 24px rgba(27, 71, 58, 0.14);
+}
+
+.ticketCard:hover::before {
+  opacity: 1;
+  animation: sweepShine 680ms cubic-bezier(0.2, 0.7, 0.25, 1) both;
 }
 
 .transportBlock,
@@ -216,7 +250,20 @@
 .durationLine {
   width: 70px;
   height: 1px;
-  background: #2d2d2d;
+  background: linear-gradient(90deg, #2d2d2d 0%, #53c0a1 50%, #2d2d2d 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.durationLine::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -35%;
+  width: 35%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.95);
+  animation: timelineFlow 2.6s linear infinite;
 }
 
 .priceBlock {
@@ -232,6 +279,8 @@
 }
 
 .detailBtn {
+  position: relative;
+  overflow: hidden;
   min-height: 42px;
   border: 0;
   border-radius: 6px;
@@ -249,6 +298,26 @@
   box-shadow: 0 8px 16px rgba(56, 166, 133, 0.35);
 }
 
+.detailBtn::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -30%;
+  width: 30%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.45) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: skewX(-18deg);
+}
+
+.detailBtn:hover::after {
+  animation: btnSweep 560ms ease-out;
+}
+
 @keyframes pageEnter {
   from {
     opacity: 0;
@@ -264,12 +333,52 @@
 @keyframes cardEnter {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(14px) scale(0.985);
   }
 
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes sweepShine {
+  from {
+    transform: translateX(-120%);
+  }
+
+  to {
+    transform: translateX(120%);
+  }
+}
+
+@keyframes timelineFlow {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(390%);
+  }
+}
+
+@keyframes btnSweep {
+  from {
+    transform: translateX(0) skewX(-18deg);
+  }
+
+  to {
+    transform: translateX(430%) skewX(-18deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticketCard,
+  .detailBtn,
+  .detailBtn::after,
+  .durationLine::after {
+    animation: none;
+    transition: none;
   }
 }
 
