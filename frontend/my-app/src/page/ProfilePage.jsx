@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { NavLink } from "react-router-dom";
 import styles from "./ProfilePage.module.css";
 
 const initialProfile = {
@@ -19,8 +20,8 @@ const initialProfile = {
 };
 
 const sideMenu = [
-  { label: "Tài khoản", active: true },
-  { label: "Đặt vé của tôi" },
+  { label: "Tài khoản", active: true, to: "/profile" },
+  { label: "Đặt vé của tôi", to: "/booking-history" },
   { label: "Danh sách giao dịch" },
   { label: "Thông báo" },
   { label: "Hoàn trả" },
@@ -64,7 +65,13 @@ const ProfilePage = () => {
                 className={`${styles.menuItem} ${item.active ? styles.activeItem : ""}`}
               >
                 <span className={styles.menuIcon}>◉</span>
-                <span>{item.label}</span>
+                {item.to ? (
+                  <NavLink to={item.to} className={styles.menuLink}>
+                    {item.label}
+                  </NavLink>
+                ) : (
+                  <span>{item.label}</span>
+                )}
               </li>
             ))}
           </ul>

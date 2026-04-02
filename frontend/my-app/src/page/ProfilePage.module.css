@@ -153,6 +153,11 @@
   color: #1f7c69;
 }
 
+.menuLink {
+  color: inherit;
+  text-decoration: none;
+}
+
 .activeItem {
   background: var(--mint);
   color: #fff;

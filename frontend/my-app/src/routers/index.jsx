@@ -13,6 +13,7 @@ import SearchPage from "../page/SearchPage";
 import RoomDetailPage from "../page/RoomDetailPage";
 import BookingPage from "../page/BookingPage";
 import ProfilePage from "../page/ProfilePage";
+import BookingHistoryPage from "../page/BookingHistoryPage";
 import DashboardPage from "../page/DashboardPage";
 import LoginPage from "../page/LoginPage";
 import RegisterPage from "../page/RegisterPage";
@@ -37,6 +38,7 @@ const router = createBrowserRouter([
         children: [
           { path: "/rooms/:id/book", element: <BookingPage /> },
           { path: "/profile", element: <ProfilePage /> },
+          { path: "/booking-history", element: <BookingHistoryPage /> },
         ],
       },
 
