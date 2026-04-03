@@ -35,6 +35,8 @@ export const router = createBrowserRouter([
       { path: ROUTES.HOME,        element: lazy_(() => import("@/components/pages/HomePage")) },
       { path: ROUTES.SEARCH,      element: lazy_(() => import("@/components/pages/SearchPage")) },
       { path: ROUTES.ROOM_DETAIL, element: lazy_(() => import("@/components/pages/RoomDetailPage")) },
+      { path: ROUTES.FLIGHT_PAYMENT, element: lazy_(() => import("@/components/pages/FlightPaymentPage")) },
+      { path: ROUTES.BUS_PAYMENT,    element: lazy_(() => import("@/components/pages/BusPaymentPage")) },
       {
         element: <PrivateRoute />,
         children: [

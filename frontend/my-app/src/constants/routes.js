@@ -11,5 +11,8 @@ export const ROUTES = {
   SEARCH:      "/search",
   ROOM_DETAIL: "/rooms/:id",
   BOOKING:     "/booking",
-  NOT_FOUND:   "*",
+  PAYMENT:        "/payment", // Để lại cho tương thích (hoặc xoá)
+  FLIGHT_PAYMENT: "/payment/flight",
+  BUS_PAYMENT:    "/payment/bus",
+  NOT_FOUND:      "*",
 };

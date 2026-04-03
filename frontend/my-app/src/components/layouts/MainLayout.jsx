@@ -44,7 +44,7 @@ const MainLayout = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans selection:bg-blue-100 selection:text-blue-700">
+    <div className="min-h-screen bg-slate-50 font-sans selection:bg-teal-100 selection:text-teal-700">
       {/* --- Navbar --- */}
       <nav className={`fixed top-0 z-50 w-full transition-all duration-300 ${
         scrolled ? "bg-white/80 backdrop-blur-md shadow-sm border-b border-slate-100 py-3" : "bg-transparent py-5"
@@ -53,11 +53,11 @@ const MainLayout = () => {
           <div className="flex justify-between items-center">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 group">
-              <div className="bg-blue-600 p-2 rounded-xl text-white group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-blue-200">
+              <div className="bg-teal-600 p-2 rounded-xl text-white group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-teal-200">
                 <Briefcase size={22} strokeWidth={2.5} />
               </div>
               <span className={`text-xl font-bold tracking-tight ${scrolled ? "text-slate-800" : "text-slate-900"}`}>
-                Booking <span className="text-blue-600">App</span>
+                Viva<span className="text-teal-600">Vivu</span>
               </span>
             </Link>
 
@@ -67,8 +67,8 @@ const MainLayout = () => {
                 <Link
                   key={link.path}
                   to={link.path}
-                  className={`text-sm font-medium transition-colors hover:text-blue-600 ${
-                    location.pathname === link.path ? "text-blue-600" : "text-slate-600"
+                  className={`text-sm font-medium transition-colors hover:text-teal-600 ${
+                    location.pathname === link.path ? "text-teal-600" : "text-slate-600"
                   }`}
                 >
                   {link.name}
@@ -78,7 +78,7 @@ const MainLayout = () => {
 
             {/* User Actions */}
             <div className="hidden md:flex items-center gap-4">
-              <button className="p-2 text-slate-500 hover:text-blue-600 transition-colors">
+              <button className="p-2 text-slate-500 hover:text-teal-600 transition-colors">
                 <Search size={20} />
               </button>
               
@@ -93,7 +93,7 @@ const MainLayout = () => {
                       {user.avatar ? (
                         <img src={user.avatar} alt={user.username} className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-blue-50 text-blue-600">
+                        <div className="w-full h-full flex items-center justify-center bg-teal-50 text-teal-600">
                           <User size={20} />
                         </div>
                       )}
@@ -114,11 +114,11 @@ const MainLayout = () => {
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <Link to="/login" className="px-5 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">
+                  <Link to="/login" className="px-5 py-2 text-sm font-medium text-slate-800 hover:text-teal-600 transition-colors">
                     Đăng nhập
                   </Link>
-                  <Link to="/register" className="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-full shadow-lg shadow-blue-200 transition-all active:scale-95">
-                    Tham gia ngay
+                  <Link to="/register" className="px-5 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-full shadow-lg shadow-teal-200 transition-all active:scale-95">
+                    Đăng ký
                   </Link>
                 </div>
               )}
@@ -151,7 +151,7 @@ const MainLayout = () => {
                   to={link.path} 
                   onClick={() => setIsMenuOpen(false)}
                   className={`flex items-center gap-4 p-4 rounded-2xl text-lg font-medium transition-colors ${
-                    location.pathname === link.path ? "bg-blue-50 text-blue-600" : "text-slate-600 active:bg-slate-50"
+                    location.pathname === link.path ? "bg-teal-50 text-teal-600" : "text-slate-600 active:bg-slate-50"
                   }`}
                 >
                   <link.icon size={22} />
@@ -168,7 +168,7 @@ const MainLayout = () => {
               ) : (
                 <div className="flex flex-col gap-3">
                   <Link to="/login" onClick={() => setIsMenuOpen(false)} className="w-full py-4 text-center text-slate-600 font-medium bg-slate-100 rounded-2xl">Đăng nhập</Link>
-                  <Link to="/register" onClick={() => setIsMenuOpen(false)} className="w-full py-4 text-center text-white font-medium bg-blue-600 rounded-2xl shadow-lg shadow-blue-200">Tham gia ngay</Link>
+                  <Link to="/register" onClick={() => setIsMenuOpen(false)} className="w-full py-4 text-center text-white font-medium bg-teal-600 rounded-2xl shadow-lg shadow-teal-200">Đăng ký</Link>
                 </div>
               )}
             </div>
@@ -189,10 +189,10 @@ const MainLayout = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
             <div className="col-span-1 md:col-span-1">
               <Link to="/" className="flex items-center gap-2 mb-6">
-                <div className="bg-blue-600 p-2 rounded-xl text-white">
+                <div className="bg-teal-600 p-2 rounded-xl text-white">
                   <Briefcase size={20} />
                 </div>
-                <span className="text-xl font-bold tracking-tight">Booking <span className="text-blue-600">App</span></span>
+                <span className="text-xl font-bold tracking-tight">Viva<span className="text-teal-600">Vivu</span></span>
               </Link>
               <p className="text-slate-500 text-sm leading-relaxed">
                 Nền tảng đặt phòng khách sạn hàng đầu Việt Nam. Mang đến cho bạn kỳ nghỉ tuyệt vời với giá cả ưu đãi nhất.
