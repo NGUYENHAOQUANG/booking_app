@@ -35,6 +35,8 @@ export const router = createBrowserRouter([
       { path: ROUTES.HOME,           element: lazy_(() => import("@/components/pages/HomePage")) },
       { path: ROUTES.SEARCH,         element: lazy_(() => import("@/components/pages/SearchPage")) },
       { path: ROUTES.FLIGHT_SEARCH,  element: lazy_(() => import("@/components/pages/FlightSearchPage")) },
+      { path: ROUTES.FLIGHT_SEATS,   element: lazy_(() => import("@/components/pages/FlightSeatsPage")) },
+      { path: ROUTES.CHECKOUT,       element: lazy_(() => import("@/components/pages/CheckoutPage")) },
       { path: ROUTES.ROOM_DETAIL,    element: lazy_(() => import("@/components/pages/RoomDetailPage")) },
       {
         element: <PrivateRoute />,

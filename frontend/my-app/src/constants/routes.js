@@ -10,6 +10,8 @@ export const ROUTES = {
   PROFILE:        "/profile",
   SEARCH:         "/search",              // ← Room/accommodation search
   FLIGHT_SEARCH:  "/flights",             // ← Flight search page
+  FLIGHT_SEATS:   "/flight-seats/:flightId", // ← Flight seat selection
+  CHECKOUT:       "/checkout",             // ← Checkout page (no login required)
   ROOM_DETAIL:    "/rooms/:id",
   BOOKING:        "/booking",
   NOT_FOUND:      "*",
