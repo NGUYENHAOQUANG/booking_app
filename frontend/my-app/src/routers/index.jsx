@@ -32,9 +32,10 @@ export const router = createBrowserRouter([
   {
     element: <MainLayout />,
     children: [
-      { path: ROUTES.HOME,        element: lazy_(() => import("@/components/pages/HomePage")) },
-      { path: ROUTES.SEARCH,      element: lazy_(() => import("@/components/pages/SearchPage")) },
-      { path: ROUTES.ROOM_DETAIL, element: lazy_(() => import("@/components/pages/RoomDetailPage")) },
+      { path: ROUTES.HOME,           element: lazy_(() => import("@/components/pages/HomePage")) },
+      { path: ROUTES.SEARCH,         element: lazy_(() => import("@/components/pages/SearchPage")) },
+      { path: ROUTES.FLIGHT_SEARCH,  element: lazy_(() => import("@/components/pages/FlightSearchPage")) },
+      { path: ROUTES.ROOM_DETAIL,    element: lazy_(() => import("@/components/pages/RoomDetailPage")) },
       {
         element: <PrivateRoute />,
         children: [
@@ -48,4 +49,4 @@ export const router = createBrowserRouter([
 
   { path: "/",              element: <Navigate to={ROUTES.HOME} replace /> },
   { path: ROUTES.NOT_FOUND, element: lazy_(() => import("@/components/pages/NotFoundPage")) },
-]);
+]);
