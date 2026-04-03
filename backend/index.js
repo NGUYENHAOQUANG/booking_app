@@ -3,13 +3,18 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const bodyParser = require('body-parser');
-const connectDB = require('./db');
+const cookieParser = require('cookie-parser');
+const connectDB = require('./config/db');
+const authRoutes = require("./routes/authRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Connect to MongoDB
-connectDB();
+connectDB().then(() => {
+  // Tự động chạy seeder cho roles
+  require('./seeders/seedRoles').seedRoles().catch(console.error);
+});
 
 // Middleware
 app.use(helmet());
@@ -17,6 +22,7 @@ app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:3000',
   credentials: true,
 }));
+app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -24,7 +30,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.get('/', (req, res) => {
   res.json({ message: 'Booking Web API is running 🚀', status: 'OK' });
 });
-
+app.use("/api/auth", authRoutes);
 // TODO: Import and use your routes here
 // Example:
 // const authRoutes = require('./routes/auth');
