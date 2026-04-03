@@ -48,7 +48,7 @@ const Footer = () => {
           </div>
         </div>
         <div className="pt-8 border-t border-slate-50 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-400">
-          <p>© 2024 Booking App. Tất cả quyền được bảo lưu.</p>
+          <p>© 2025 hahaha Booking App. Tất cả quyền được bảo lưu.</p>
           <div className="flex gap-6">
             <a href="#" className="hover:text-slate-600 transition-colors">Điều khoản dịch vụ</a>
             <a href="#" className="hover:text-slate-600 transition-colors">Chính sách bảo mật</a>

@@ -376,7 +376,7 @@ export default function HomePage() {
           {/* Card 1 – wide left top */}
           <article className="group relative rounded-[2.5rem] overflow-hidden shadow-lg hover:shadow-2xl hover:-translate-y-0.5 transition-all duration-500 cursor-pointer md:col-span-2" style={{ height: "300px" }}>
             <img
-              src="https://images.unsplash.com/photo-1598449356475-b9f71db7d847?auto=format&fit=crop&q=80&w=1200"
+              src="https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&q=80&w=1200"
               alt="Chuyến tham gia di sản văn hóa Việt Nam"
               className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
               loading="lazy"
@@ -424,7 +424,7 @@ export default function HomePage() {
           {/* Card 4 – wide right bottom */}
           <article className="group relative rounded-[2.5rem] overflow-hidden shadow-lg hover:shadow-2xl hover:-translate-y-0.5 transition-all duration-500 cursor-pointer md:col-span-2" style={{ height: "300px" }}>
             <img
-              src="https://images.unsplash.com/photo-1459749411177-042180ce6742?auto=format&fit=crop&q=80&w=1200"
+              src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&q=80&w=1200"
               alt="Đêm nhạc và buổi hoà nhạc"
               className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
               loading="lazy"
