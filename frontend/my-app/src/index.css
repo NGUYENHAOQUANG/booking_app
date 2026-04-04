@@ -1,1 +1,50 @@
 @import "tailwindcss";
+
+@theme {
+  --color-primary: #10967d;
+  --color-secondary: #0d7a66;
+  --font-heading: "Outfit", sans-serif;
+}
+
+:root {
+  --viva-green: #10967d;
+  --viva-green-light: #1fb99a;
+  --viva-bg: #f8fafc;
+}
+
+body {
+  background-color: var(--viva-bg);
+  font-family: 'Inter', sans-serif;
+  color: #1e293b;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Outfit', sans-serif;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.viva-gradient-btn {
+  background: linear-gradient(135deg, #10967d 0%, #1fb99a 100%);
+}
+
+.text-viva {
+  color: var(--viva-green);
+}
+
+.bg-viva {
+  background-color: var(--viva-green);
+}
+
+@keyframes bounce-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 3s ease-in-out infinite;
+}
