@@ -1,125 +1,198 @@
 import { useState } from "react";
-import { User, Mail, Phone, MapPin, Camera, Save, Lock, ShieldCheck, Trash2, AlertCircle, CheckCircle2 } from "lucide-react";
-import useAuthStore from "@/store/authStore";
+import { NavLink } from "react-router-dom";
+import styles from "./ProfilePage.module.css";
+
+const initialProfile = {
+  avatarUrl:
+    "https://www.figma.com/api/mcp/asset/0fcd60c1-b037-4ecf-a497-4142d52f27d7",
+  fullName: "",
+  email: "test@gmail.com",
+  nickname: "test",
+  memberTier: "Bạn là thành viên Bronze Priority",
+  gender: "",
+  birthDate: "",
+  city: "TPHCM",
+  mobile: "",
+  linkedAccounts: [
+    { name: "Facebook", key: "facebook" },
+    { name: "Google", key: "google" },
+  ],
+};
+
+const sideMenu = [
+  { label: "Tài khoản", active: true, to: "/profile" },
+  { label: "Đặt vé của tôi", to: "/booking-history" },
+  { label: "Danh sách giao dịch" },
+  { label: "Thông báo" },
+  { label: "Hoàn trả" },
+  { label: "Đăng xuất" },
+];
 
 const ProfilePage = () => {
-  const { user } = useAuthStore();
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ type: "", text: "" });
+  const [profile, setProfile] = useState(initialProfile);
+  const displayEmail = profile.email.trim() || "yourname@gmail.com";
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    
-    // Mock logic: sẽ gọi API cập nhật user content ở đây
-    setTimeout(() => {
-      setMessage({ type: "success", text: "Chưa có thay đổi nào được lưu (Tính năng đang phát triển)." });
-      setLoading(false);
-    }, 1000);
+  const handleInputChange = (event) => {
+    const { name, value } = event.target;
+    setProfile((prev) => ({ ...prev, [name]: value }));
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-12">
-      <div className="space-y-1">
-        <h1 className="text-3xl font-bold text-slate-900 tracking-tight leading-tight">Cài đặt tài khoản</h1>
-        <p className="text-slate-400 text-sm">Quản lý thông tin cá nhân và cài đặt bảo mật của bạn.</p>
-      </div>
+    <section className={styles.page}>
+      <div className={styles.container}>
+        <aside className={styles.sidebar}>
+          <div className={styles.userHeader}>
+            <img
+              className={styles.userAvatar}
+              src={profile.avatarUrl}
+              alt="Avatar người dùng"
+            />
+            <div className={styles.userInfo}>
+              <h2 className={styles.userEmail}>{displayEmail}</h2>
+              <p className={styles.userNickname}>{profile.nickname}</p>
+            </div>
+          </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-        {/* Left: Avatar & Quick Info */}
-        <div className="md:col-span-1 space-y-8">
-           <div className="bg-white p-8 rounded-[3rem] border border-slate-50 shadow-sm flex flex-col items-center text-center space-y-6">
-              <div className="relative group">
-                 <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-slate-50 bg-slate-100 shadow-xl shadow-slate-100">
-                    {user?.avatar ? (
-                      <img src={user.avatar} alt={user.username} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-blue-50 text-blue-600">
-                        <User size={48} />
-                      </div>
-                    )}
-                 </div>
-                 <button className="absolute bottom-1 right-1 w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center border-4 border-white shadow-lg hover:scale-110 active:scale-95 transition-all">
-                    <Camera size={16} />
-                 </button>
-              </div>
-              <div>
-                 <h3 className="text-xl font-bold text-slate-900 leading-tight uppercase tracking-tight">{user?.fullName || user?.username}</h3>
-                 <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1 italic">{user?.role?.displayName || "Member"}</p>
-              </div>
-              <div className="pt-6 border-t border-slate-50 w-full">
-                 <div className="flex justify-between items-center text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">
-                    <span>Trạng thái tài khoản</span>
-                    <span className="text-green-600">Đã xác minh</span>
-                 </div>
-                 <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                    <div className="w-[85%] h-full bg-blue-600 rounded-full shadow-sm shadow-blue-200"></div>
-                 </div>
-                 <p className="text-[10px] text-slate-400 mt-2 font-medium">Hoàn thiện 85% hồ sơ của bạn.</p>
-              </div>
-           </div>
+          <div className={styles.memberBadge}>
+            <span>{profile.memberTier}</span>
+            <span className={styles.badgeArrow}>›</span>
+          </div>
 
-           <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white space-y-6 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 -mr-10 -mt-10 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all"></div>
-              <ShieldCheck size={32} className="text-blue-400 mb-2" />
-              <h4 className="text-lg font-bold">Bảo mật đa lớp</h4>
-              <p className="text-slate-400 text-xs leading-relaxed font-light">Kích hoạt xác thực 2 lớp để bảo vệ tài khoản và lịch sử giao dịch của bạn.</p>
-              <button className="text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors uppercase tracking-widest">Thiết lập ngay →</button>
-           </div>
+          <ul className={styles.menuList}>
+            {sideMenu.map((item) => (
+              <li
+                key={item.label}
+                className={`${styles.menuItem} ${item.active ? styles.activeItem : ""}`}
+              >
+                <span className={styles.menuIcon}>◉</span>
+                {item.to ? (
+                  <NavLink to={item.to} className={styles.menuLink}>
+                    {item.label}
+                  </NavLink>
+                ) : (
+                  <span>{item.label}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </aside>
+
+        <div className={styles.content}>
+          <h1 className={styles.title}>Thông tin tài khoản</h1>
+
+          <section className={`${styles.panel} ${styles.personalPanel}`}>
+            <div className={styles.panelHeader}>Dữ liệu cá nhân</div>
+
+            <div className={styles.fieldGroup}>
+              <label htmlFor="fullName">Tên đầy đủ</label>
+              <input
+                id="fullName"
+                name="fullName"
+                value={profile.fullName}
+                placeholder="Ví dụ: Nguyễn Văn An"
+                onChange={handleInputChange}
+              />
+            </div>
+
+            <div className={styles.inlineFields}>
+              <div className={styles.fieldGroup}>
+                <label htmlFor="gender">Giới tính</label>
+                <select
+                  id="gender"
+                  name="gender"
+                  value={profile.gender}
+                  onChange={handleInputChange}
+                >
+                  <option value="">Chọn giới tính</option>
+                  <option value="male">Nam</option>
+                  <option value="female">Nữ</option>
+                </select>
+              </div>
+
+              <div className={styles.fieldGroup}>
+                <label htmlFor="birthDate">Ngày sinh</label>
+                <input
+                  id="birthDate"
+                  type="date"
+                  name="birthDate"
+                  value={profile.birthDate}
+                  onChange={handleInputChange}
+                  className={styles.dateInput}
+                />
+              </div>
+            </div>
+
+            <div className={styles.fieldGroup}>
+              <label htmlFor="city">Nơi cư trú</label>
+              <input
+                id="city"
+                name="city"
+                value={profile.city}
+                placeholder="Ví dụ: TP. Ho Chi Minh"
+                onChange={handleInputChange}
+              />
+            </div>
+
+            <div className={styles.actionField}>
+              <div className={styles.fieldGroup}>
+                <label htmlFor="email">Email</label>
+                <input
+                  id="email"
+                  name="email"
+                  value={profile.email}
+                  placeholder="Ví dụ: tenban@gmail.com"
+                  onChange={handleInputChange}
+                />
+              </div>
+              <button type="button" className={styles.outlineBtn}>
+                + Thêm email
+              </button>
+            </div>
+
+            <div className={styles.actionField}>
+              <div className={styles.fieldGroup}>
+                <label htmlFor="mobile">Số di động</label>
+                <input
+                  id="mobile"
+                  name="mobile"
+                  value={profile.mobile}
+                  placeholder="Ví dụ: 09xxxxxxxx"
+                  onChange={handleInputChange}
+                />
+              </div>
+              <button type="button" className={styles.outlineBtn}>
+                + Thêm số điện thoại
+              </button>
+            </div>
+
+            <div className={styles.saveRow}>
+              <button type="button" className={styles.saveBtn}>
+                Lưu thông tin
+              </button>
+            </div>
+          </section>
+
+          <section className={`${styles.panel} ${styles.linkedPanel}`}>
+            <div className={styles.panelHeader}>Tài khoản liên kết</div>
+            <ul className={styles.linkedList}>
+              {profile.linkedAccounts.map((item) => (
+                <li key={item.key} className={styles.linkedItem}>
+                  <span
+                    className={`${styles.linkedIcon} ${
+                      item.key === "facebook" ? styles.facebookIcon : styles.googleIcon
+                    }`}
+                    aria-hidden="true"
+                  >
+                    {item.key === "facebook" ? "f" : "G"}
+                  </span>
+                  <span>{item.name}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
         </div>
-
-        {/* Right: Detailed Settings Form */}
-        <div className="md:col-span-2 space-y-12">
-           <form onSubmit={handleSubmit} className="bg-white rounded-[3rem] p-8 sm:p-12 border border-slate-50 shadow-sm space-y-10 group">
-              {message.text && (
-                <div className={`p-4 rounded-xl flex items-center gap-3 text-sm font-bold shadow-sm ${message.type === 'error' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
-                  {message.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle2 size={20} />}
-                  {message.text}
-                </div>
-              )}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                 <div className="space-y-4">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Tên hiển thị</label>
-                    <div className="relative">
-                       <User size={18} className="absolute left-4 top-4 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
-                       <input type="text" defaultValue={user?.username} className="w-full h-14 pl-12 pr-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all" />
-                    </div>
-                 </div>
-                 <div className="space-y-4">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Email liên lạc</label>
-                    <div className="relative">
-                       <Mail size={18} className="absolute left-4 top-4 text-slate-400" />
-                       <input type="email" defaultValue={user?.email || "quang@example.com"} className="w-full h-14 pl-12 pr-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-400 cursor-not-allowed outline-none" readOnly />
-                    </div>
-                 </div>
-                 <div className="space-y-4">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Số điện thoại</label>
-                    <div className="relative">
-                       <Phone size={18} className="absolute left-4 top-4 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
-                       <input type="tel" defaultValue="0987 *** ***" className="w-full h-14 pl-12 pr-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all" />
-                    </div>
-                 </div>
-                 <div className="space-y-4">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Vị trí hiện tại</label>
-                    <div className="relative">
-                       <MapPin size={18} className="absolute left-4 top-4 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
-                       <input type="text" placeholder="Thành phố của bạn" className="w-full h-14 pl-12 pr-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all" />
-                    </div>
-                 </div>
-              </div>
-
-              <div className="pt-10 flex flex-col sm:flex-row gap-4 justify-between items-center border-t border-slate-50">
-                 <button type="button" className="text-red-500 font-bold text-sm flex items-center gap-2 hover:underline p-2">
-                    <Trash2 size={18} /> Vô hiệu hóa tài khoản
-                 </button>
-                 <button type="submit" disabled={loading} className="h-16 px-12 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-2xl font-bold flex items-center gap-3 shadow-2xl shadow-blue-200 active:scale-95 transition-all">
-                    {loading ? "Đang xử lý..." : "Lưu các thay đổi"} <Save size={20} />
-                 </button>
-              </div>
-           </form>
-        </div>
       </div>
-    </div>
+    </section>
   );
 };
 

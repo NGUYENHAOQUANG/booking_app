@@ -5,7 +5,11 @@ const helmet = require('helmet');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const connectDB = require('./config/db');
-const authRoutes = require("./routes/authRoutes");
+const authRoutes = require('./routes/authRoutes');
+const flightRoutes = require('./routes/flightRoutes');
+const bookingRoutes = require('./routes/bookingRoutes');
+const userRoutes = require('./routes/userRoutes');
+const carRoutes = require('./routes/carRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -30,11 +34,11 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.get('/', (req, res) => {
   res.json({ message: 'Booking Web API is running 🚀', status: 'OK' });
 });
-app.use("/api/auth", authRoutes);
-// TODO: Import and use your routes here
-// Example:
-// const authRoutes = require('./routes/auth');
-// app.use('/api/auth', authRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/flights', flightRoutes);
+app.use('/api/bookings', bookingRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/cars', carRoutes);
 
 // 404 handler
 app.use((req, res) => {
