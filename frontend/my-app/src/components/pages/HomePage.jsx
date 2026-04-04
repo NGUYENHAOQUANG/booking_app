@@ -1,5 +1,6 @@
 import { Search, MapPin, Calendar, Users, Plane, Bus, Zap, ShieldCheck, Headphones, Handshake, ArrowRight, ArrowLeftRight, ChevronDown, Star } from "lucide-react";
 import { Link } from "react-router-dom";
+import CarLocation from "@/components/CarLocation";
 import { useState } from "react";
 import { ROUTES } from "@/constants/routes";
 
@@ -304,6 +305,19 @@ export default function HomePage() {
         </div>
       </section>
 
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+        <CarLocation />
+      </section>
+
+      {/* --- Featured Section --- */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-12">
+          <div className="space-y-4">
+            <span className="text-blue-600 font-bold uppercase tracking-widest text-xs">Điểm đến hàng đầu</span>
+            <h2 className="text-4xl font-bold text-slate-800 tracking-tight">Lựa chọn cao cấp cho bạn.</h2>
+          </div>
+          <Link to="/search" className="flex items-center gap-2 text-slate-500 hover:text-blue-600 font-medium transition-colors group">
+            Xem tất cả <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
       {/* ══════════════ FLASH DEALS ══════════════ */}
       <section className="max-w-7xl mx-auto w-full px-4 sm:px-6 py-20">
         <div className="flex items-center justify-between mb-8">
