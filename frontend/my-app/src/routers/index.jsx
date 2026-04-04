@@ -1,66 +1,111 @@
-import { createBrowserRouter } from "react-router-dom";
+// src/routers/index.jsx
+import { createBrowserRouter, Navigate } from "react-router-dom";
+import { lazy, Suspense } from "react";
+import { ROUTES } from "@/constants/routes";
+import PrivateRoute from "./PrivateRoute";
+import AuthLayout from "@/components/layouts/AuthLayout";
+import MainLayout from "@/components/layouts/MainLayout";
 
-// Layouts
-import MainLayout from "../components/layouts/MainLayout";
-import AuthLayout from "../components/layouts/AuthLayout";
+const lazy_ = (fn) => {
+  const Comp = lazy(fn);
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-screen items-center justify-center text-slate-400 text-sm font-bold uppercase tracking-widest animate-pulse italic select-none">
+          Đang tải trải nghiệm của bạn...
+        </div>
+      }
+    >
+      <Comp />
+    </Suspense>
+  );
+};
 
-// Guards
-import ProtectedRoute from "../components/ProtectedRoute";
-
-// Pages
-import HomePage from "../page/HomePage";
-import SearchPage from "../page/SearchPage";
-import RoomDetailPage from "../page/RoomDetailPage";
-import BookingPage from "../page/BookingPage";
-import ProfilePage from "../page/ProfilePage";
-import DashboardPage from "../page/DashboardPage";
-import LoginPage from "../page/LoginPage";
-import RegisterPage from "../page/RegisterPage";
-import NotFoundPage from "../page/NotFoundPage";
-
-// TODO: Thay bằng giá trị thực từ AuthContext / Redux store
-const isAuthenticated = false;
-const isAdmin = false;
-
-const router = createBrowserRouter([
-  // ── Public routes (có Navbar + Footer) ──
-  {
-    element: <MainLayout />,
-    children: [
-      { path: "/", element: <HomePage /> },
-      { path: "/search", element: <SearchPage /> },
-      { path: "/rooms/:id", element: <RoomDetailPage /> },
-
-      // ── Private routes: chỉ user đã đăng nhập ──
-      {
-        element: <ProtectedRoute isAllowed={isAuthenticated} />,
-        children: [
-          { path: "/rooms/:id/book", element: <BookingPage /> },
-          { path: "/profile", element: <ProfilePage /> },
-        ],
-      },
-
-      // ── Admin routes: chỉ user là admin ──
-      {
-        element: <ProtectedRoute isAllowed={isAdmin} redirectTo="/" />,
-        children: [
-          { path: "/dashboard", element: <DashboardPage /> },
-        ],
-      },
-    ],
-  },
-
-  // ── Auth routes (chỉ card form, không có Navbar) ──
+export const router = createBrowserRouter([
+  // ── Auth routes ──────────────────────────────────────────────────────────
   {
     element: <AuthLayout />,
     children: [
-      { path: "/login", element: <LoginPage /> },
-      { path: "/register", element: <RegisterPage /> },
+      {
+        path: ROUTES.LOGIN,
+        element: lazy_(() => import("@/components/auth/LoginPage")),
+      },
+      {
+        path: ROUTES.REGISTER,
+        element: lazy_(() => import("@/components/auth/RegisterPage")),
+      },
+      {
+        path: ROUTES.FORGOT_PW,
+        element: lazy_(() => import("@/components/auth/ForgotPasswordPage")),
+      },
+      {
+        path: ROUTES.VERIFY_OTP,
+        element: lazy_(() => import("@/components/auth/VerifyOTPPage")),
+      },
+      {
+        path: ROUTES.RESET_PW,
+        element: lazy_(() => import("@/components/auth/ResetPasswordPage")),
+      },
     ],
   },
 
-  // ── 404 ──
-  { path: "*", element: <NotFoundPage /> },
-]);
+  // ── Public & Private routes (Main Layout) ────────────────────────────────
+  {
+    element: <MainLayout />,
+    children: [
+      {
+        path: ROUTES.HOME,
+        element: lazy_(() => import("@/components/pages/HomePage")),
+      },
+      {
+        path: ROUTES.SEARCH,
+        element: lazy_(() => import("@/components/pages/SearchPage")),
+      },
+      {
+        path: ROUTES.ROOM_DETAIL,
+        element: lazy_(() => import("@/components/pages/RoomDetailPage")),
+      },
+      {
+        element: <PrivateRoute />,
+        children: [
+          {
+            path: ROUTES.DASHBOARD,
+            element: lazy_(() => import("@/components/pages/DashboardPage")),
+          },
+          {
+            path: ROUTES.PROFILE,
+            element: lazy_(() => import("@/components/pages/ProfilePage")),
+          },
+          {
+            path: ROUTES.BOOKING,
+            element: lazy_(() => import("@/components/pages/BookingPage")),
+          },
+          {
+            path: ROUTES.BOOKING_CONFIRMATION,
+            element: lazy_(
+              () => import("@/components/pages/BookingConfirmationPage"),
+            ),
+          },
+          {
+            path: ROUTES.BOOKING_FAILURE,
+            element: lazy_(
+              () => import("@/components/pages/BookingFailurePage"),
+            ),
+          },
+          {
+            path: ROUTES.BOOKING_HISTORY,
+            element: lazy_(
+              () => import("@/components/pages/BookingHistoryPage"),
+            ),
+          },
+        ],
+      },
+    ],
+  },
 
-export default router;
+  { path: "/", element: <Navigate to={ROUTES.HOME} replace /> },
+  {
+    path: ROUTES.NOT_FOUND,
+    element: lazy_(() => import("@/components/pages/NotFoundPage")),
+  },
+]);
