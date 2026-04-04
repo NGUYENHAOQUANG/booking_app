@@ -5,7 +5,10 @@
   "main": "index.js",
   "scripts": {
     "start": "nodemon index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "seed:roles": "node seeders/seedRoles.js",
+    "seed:flights": "node seeders/seedFlightData.js",
+    "seed:all": "node seeders/seedRoles.js && node seeders/seedFlightData.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
