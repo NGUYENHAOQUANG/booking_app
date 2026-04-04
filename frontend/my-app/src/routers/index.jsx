@@ -41,6 +41,7 @@ export const router = createBrowserRouter([
           { path: ROUTES.DASHBOARD, element: lazy_(() => import("@/components/pages/DashboardPage")) },
           { path: ROUTES.PROFILE,   element: lazy_(() => import("@/components/pages/ProfilePage")) },
           { path: ROUTES.BOOKING,   element: lazy_(() => import("@/components/pages/BookingPage")) },
+          { path: ROUTES.BOOKING_HISTORY, element: lazy_(() => import("@/components/pages/BookingHistoryPage")) },
         ],
       },
     ],
@@ -48,4 +49,4 @@ export const router = createBrowserRouter([
 
   { path: "/",              element: <Navigate to={ROUTES.HOME} replace /> },
   { path: ROUTES.NOT_FOUND, element: lazy_(() => import("@/components/pages/NotFoundPage")) },
-]);
+]);

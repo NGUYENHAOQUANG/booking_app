@@ -11,5 +11,6 @@ export const ROUTES = {
   SEARCH:      "/search",
   ROOM_DETAIL: "/rooms/:id",
   BOOKING:     "/booking",
+  BOOKING_HISTORY: "/booking-history",
   NOT_FOUND:   "*",
 };
