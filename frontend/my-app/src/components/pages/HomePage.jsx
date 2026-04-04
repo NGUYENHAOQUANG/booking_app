@@ -1,5 +1,6 @@
 import { Search, MapPin, Calendar, Users, Star, ArrowRight, ShieldCheck, Zap, Heart } from "lucide-react";
 import { Link } from "react-router-dom";
+import CarLocation from "@/components/CarLocation";
 
 const HomePage = () => {
   const featuredRooms = [
@@ -109,6 +110,10 @@ const HomePage = () => {
             </div>
           </div>
         </div>
+      </section>
+
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+        <CarLocation />
       </section>
 
       {/* --- Featured Section --- */}
