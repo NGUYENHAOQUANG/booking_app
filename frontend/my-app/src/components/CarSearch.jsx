@@ -3,6 +3,7 @@ import styles from "./CarSearch.module.css";
 
 const CarSearch = ({ onSearch }) => {
   const [pickupLocation, setPickupLocation] = useState("");
+  const [dropoffLocation, setDropoffLocation] = useState("");
   const [rentalDate, setRentalDate] = useState("");
 
   const handleSubmit = (event) => {
@@ -10,6 +11,7 @@ const CarSearch = ({ onSearch }) => {
 
     const searchValues = {
       pickupLocation: pickupLocation.trim(),
+      dropoffLocation: dropoffLocation.trim(),
       rentalDate,
     };
 
@@ -30,6 +32,18 @@ const CarSearch = ({ onSearch }) => {
             value={pickupLocation}
             onChange={(event) => setPickupLocation(event.target.value)}
             placeholder="Nhập điểm đón"
+            required
+          />
+        </label>
+
+        <label className={styles.field}>
+          <span className={styles.label}>Điểm trả</span>
+          <input
+            type="text"
+            className={styles.input}
+            value={dropoffLocation}
+            onChange={(event) => setDropoffLocation(event.target.value)}
+            placeholder="Nhập điểm trả"
             required
           />
         </label>

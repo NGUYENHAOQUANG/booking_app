@@ -25,10 +25,9 @@ app.get('/', (req, res) => {
   res.json({ message: 'Booking Web API is running 🚀', status: 'OK' });
 });
 
-// TODO: Import and use your routes here
-// Example:
-// const authRoutes = require('./routes/auth');
-// app.use('/api/auth', authRoutes);
+const carRoutes = require('./routes/carRoutes');
+
+app.use('/api/cars', carRoutes);
 
 // 404 handler
 app.use((req, res) => {
