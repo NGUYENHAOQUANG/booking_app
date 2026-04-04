@@ -12,6 +12,7 @@ export const ROUTES = {
   ROOM_DETAIL: "/rooms/:id",
   BOOKING: "/booking",
   BOOKING_CONFIRMATION: "/booking-confirmation",
+  BOOKING_FAILURE: "/booking-failure",
   BOOKING_HISTORY: "/booking-history",
   NOT_FOUND: "*",
 };

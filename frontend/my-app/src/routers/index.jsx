@@ -87,6 +87,12 @@ export const router = createBrowserRouter([
             ),
           },
           {
+            path: ROUTES.BOOKING_FAILURE,
+            element: lazy_(
+              () => import("@/components/pages/BookingFailurePage"),
+            ),
+          },
+          {
             path: ROUTES.BOOKING_HISTORY,
             element: lazy_(
               () => import("@/components/pages/BookingHistoryPage"),
