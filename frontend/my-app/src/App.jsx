@@ -1,8 +1,16 @@
+import { useEffect } from "react";
 import { RouterProvider } from "react-router-dom";
-import router from "./routers/index";
+import Cookies from "js-cookie";
+import { router } from "@/routers";
+import useAuthStore from "@/store/authStore";
 
-function App() {
+export default function App() {
+  const fetchMe = useAuthStore((s) => s.fetchMe);
+
+  // Lấy thông tin user mới nhất từ server khi app khởi động nếu có session cookie
+  useEffect(() => {
+    if (Cookies.get("isLoggedIn")) fetchMe();
+  }, [fetchMe]);
+
   return <RouterProvider router={router} />;
 }
-
-export default App;
