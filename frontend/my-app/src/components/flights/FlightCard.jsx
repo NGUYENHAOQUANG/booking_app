@@ -1,9 +1,11 @@
 import { Clock, Briefcase, Users, Heart } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const FlightCard = ({ flight, viewMode }) => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const navigate = useNavigate();
 
   const formatTime = (time) => {
     return time;
@@ -114,7 +116,7 @@ const FlightCard = ({ flight, viewMode }) => {
               </div>
             </div>
             <button
-              onClick={() => alert("Chuyến bay: " + flight.flightNumber)}
+              onClick={() => navigate(`/flight-seats/${flight.id}`)}
               className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold py-2 px-4 rounded-lg hover:shadow-lg transition-all active:scale-95"
             >
               Chọn
@@ -258,7 +260,7 @@ const FlightCard = ({ flight, viewMode }) => {
               <span className="text-lg ml-1">triệu</span>
             </div>
             <button
-              onClick={() => alert("Chuyến bay: " + flight.flightNumber)}
+              onClick={() => navigate(`/flight-seats/${flight.id}`)}
               className={`flex-1 py-3 px-4 font-semibold rounded-lg transition-all active:scale-95 ${
                 isHovered
                   ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg"

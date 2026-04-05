@@ -28,11 +28,15 @@ const Header = ({ onOpenPasswordModal }) => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const roleName = typeof user?.role === "object" ? user?.role?.name : null;
+  const isAdmin  = ["admin", "superadmin"].includes(roleName);
+
   const navLinks = [
-    { name: "Trang chủ", path: "/", icon: Home },
-    { name: "Tìm kiếm", path: "/search", icon: Compass },
-    { name: "Chuyến đi", path: "/booking", icon: History, private: true },
-    { name: "Quản lý", path: "/dashboard", icon: Briefcase, private: true },
+    { name: "Trang chủ",   path: "/",               icon: Home },
+    { name: "Tìm kiếm",   path: "/search",          icon: Compass },
+    { name: "Chuyến bay",  path: "/flights",         icon: Compass },
+    { name: "Lịch sử vé", path: "/booking-history",  icon: History, private: true },
+    { name: "Quản lý",    path: "/dashboard",        icon: Briefcase, private: true },
   ];
 
   const handleLogout = async () => {
@@ -93,13 +97,21 @@ const Header = ({ onOpenPasswordModal }) => {
                       </div>
                     )}
                   </button>
-                  <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-slate-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0 overflow-hidden">
+                   <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-2xl shadow-xl border border-slate-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0 overflow-hidden">
                     <Link to="/profile" className="flex items-center gap-3 px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 transition-colors">
                       <Settings size={16} /> Thông tin cá nhân
+                    </Link>
+                    <Link to="/booking-history" className="flex items-center gap-3 px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 transition-colors border-t border-slate-50">
+                      <History size={16} /> Lịch sử đặt vé
                     </Link>
                     <button onClick={onOpenPasswordModal} className="flex items-center gap-3 w-full text-left px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 transition-colors border-t border-slate-50">
                       <Lock size={16} /> Đổi mật khẩu
                     </button>
+                    {isAdmin && (
+                      <Link to="/admin" className="flex items-center gap-3 px-4 py-3 text-sm text-blue-600 hover:bg-blue-50 transition-colors border-t border-slate-50">
+                        <Settings size={16} /> Admin Panel
+                      </Link>
+                    )}
                     <button onClick={handleLogout} className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-500 hover:bg-red-50 transition-colors border-t border-slate-50">
                       <LogOut size={16} /> Đăng xuất
                     </button>
