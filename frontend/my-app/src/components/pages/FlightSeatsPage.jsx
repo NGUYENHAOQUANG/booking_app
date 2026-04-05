@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import SeatMap from "../flights/SeatMap";
@@ -7,17 +7,40 @@ const FlightSeatsPage = () => {
   const { flightId } = useParams();
   const navigate = useNavigate();
   const [selectedSeats, setSelectedSeats] = useState([]);
+  const [flightData, setFlightData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Mock flight data
-  const flightData = {
-    flightNumber: "VN145",
-    departure: "HAN",
-    arrival: "SGN",
-    departTime: "08:00",
-    arriveTime: "10:30",
-    date: "2024-01-20",
-    airline: "Vietnam Airlines",
-  };
+  useEffect(() => {
+    const fetchFlight = async () => {
+      try {
+        const { default: api } = await import("../../services/Axiosinstance");
+        const res = await api.get(`/flights/${flightId}`);
+        const dbFlight = res.data.flight || res.data;
+
+        setFlightData({
+          flightNumber: dbFlight.flightNumber,
+          departure: dbFlight.origin?.code || "HAN",
+          arrival: dbFlight.destination?.code || "SGN",
+          departTime: new Date(dbFlight.departureTime).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          arriveTime: new Date(dbFlight.arrivalTime).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          date: new Date(dbFlight.departureTime).toLocaleDateString("vi-VN"),
+          airline: dbFlight.airline?.name || "Vietnam Airlines",
+          raw: dbFlight,
+        });
+      } catch (err) {
+        console.error("Lỗi lấy thông tin chuyến bay:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (flightId) fetchFlight();
+  }, [flightId]);
 
   const handleSeatsChange = (seats) => {
     setSelectedSeats(seats);
@@ -28,9 +51,19 @@ const FlightSeatsPage = () => {
       alert("Vui lòng chọn ít nhất một ghế");
       return;
     }
-    // Proceed to checkout
-    navigate("/checkout", { state: { selectedSeats, flightId } });
+    // Proceed to Flight Payment
+    navigate("/flight-payment", {
+      state: { selectedSeats, flightId, flight: flightData },
+    });
   };
+
+  if (loading || !flightData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center font-bold text-blue-600">
+        Đang tải thông tin chuyến bay...
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
@@ -123,18 +156,10 @@ const FlightSeatsPage = () => {
         <div className="mt-8 p-6 bg-yellow-50 border border-yellow-200 rounded-xl">
           <h3 className="font-bold text-yellow-900 mb-2">💡 Gợi ý</h3>
           <ul className="text-sm text-yellow-800 space-y-1">
-            <li>
-              • Ghế trống (xanh) là những ghế bạn có thể chọn
-            </li>
-            <li>
-              • Ghế đã bán (xám) là những ghế không có sẵn
-            </li>
-            <li>
-              • Bạn có thể chọn nhiều ghế một lúc
-            </li>
-            <li>
-              • Nhấn vào ghế để thêm hoặc bỏ khỏi danh sách
-            </li>
+            <li>• Ghế trống (xanh) là những ghế bạn có thể chọn</li>
+            <li>• Ghế đã bán (xám) là những ghế không có sẵn</li>
+            <li>• Bạn có thể chọn nhiều ghế một lúc</li>
+            <li>• Nhấn vào ghế để thêm hoặc bỏ khỏi danh sách</li>
           </ul>
         </div>
       </div>

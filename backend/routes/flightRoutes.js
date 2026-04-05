@@ -9,6 +9,12 @@ const { protect, restrictTo } = require('../middleware/authMiddleware');
 // GET /api/flights/airports?q=han  → search airports for autocomplete
 router.get('/airports', flightController.getAirports);
 
+// GET /api/flights/airlines  → list all airlines
+router.get('/airlines', flightController.getAirlines);
+
+// GET /api/flights  → get all public flights for testing/UI setup
+router.get('/', flightController.getAllFlights);
+
 // POST /api/flights/search  → search available flights
 router.post('/search', flightController.searchFlights);
 
@@ -20,9 +26,9 @@ router.get('/:id/seats', flightController.getSeatMap);
 
 // ─── ADMIN ROUTES ─────────────────────────────────────────────────────────────
 // POST /api/flights  → create a new flight (admin only)
-router.post('/', protect, restrictTo('admin'), flightController.createFlight);
+router.post('/', protect, restrictTo('admin', 'superadmin'), flightController.createFlight);
 
 // PUT /api/flights/:id  → update flight (admin only)
-router.put('/:id', protect, restrictTo('admin'), flightController.updateFlight);
+router.put('/:id', protect, restrictTo('admin', 'superadmin'), flightController.updateFlight);
 
 module.exports = router;

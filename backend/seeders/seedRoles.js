@@ -21,7 +21,12 @@ const defaultRoles = [
     name: "moderator",
     displayName: "Điều hành viên",
     description: "Có thể quản lý nội dung",
-    permissions: ["read:own_profile", "update:own_profile", "read:users", "moderate:content"],
+    permissions: [
+      "read:own_profile",
+      "update:own_profile",
+      "read:users",
+      "moderate:content",
+    ],
     isDefault: false,
     isActive: true,
   },
@@ -37,11 +42,10 @@ const defaultRoles = [
 
 async function seedRoles() {
   for (const roleData of defaultRoles) {
-    await Role.findOneAndUpdate(
-      { name: roleData.name },
-      roleData,
-      { upsert: true, new: true }
-    );
+    await Role.findOneAndUpdate({ name: roleData.name }, roleData, {
+      upsert: true,
+      returnDocument: "after",
+    });
     console.log(`✔  Role "${roleData.name}" ready`);
   }
   console.log("🌱 Seed roles hoàn tất!");
@@ -50,7 +54,8 @@ async function seedRoles() {
 module.exports = { seedRoles };
 
 if (require.main === module) {
-  mongoose.connect(MONGO_URI)
+  mongoose
+    .connect(MONGO_URI)
     .then(async () => {
       console.log("✅ Connected to MongoDB");
       await seedRoles();

@@ -20,10 +20,10 @@ const flightService = {
     }
   },
 
-  // Get all flights (with filters)
-  getFlights: async (filters = {}) => {
+  // Get all flights
+  getFlights: async () => {
     try {
-      const response = await Axiosinstance.get("/flights", { params: filters });
+      const response = await Axiosinstance.get("/flights");
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;

@@ -4,6 +4,23 @@ const Airport = require('../models/Airport');
 const Airline = require('../models/Airline');
 const Seat = require('../models/Seat');
 
+exports.getAllFlights = async (req, res) => {
+  try {
+    const flights = await Flight.find({
+      status: 'scheduled',
+      isActive: true,
+    })
+      .populate('airline', 'code name logo')
+      .populate('origin', 'code name city')
+      .populate('destination', 'code name city')
+      .sort({ departureTime: 1 })
+      .limit(50);
+    res.status(200).json({ success: true, flights });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Lỗi server', error: error.message });
+  }
+};
+
 // ─── SEARCH FLIGHTS ──────────────────────────────────────────────────────────
 /**
  * POST /api/flights/search
@@ -178,5 +195,19 @@ exports.updateFlight = async (req, res) => {
     res.json({ success: true, data: flight });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+// ─── GET ALL AIRLINES ──────────────────────────────────────────────────────────
+/**
+ * GET /api/flights/airlines
+ * Returns list of all airlines (for filter UI on search page)
+ */
+exports.getAirlines = async (req, res) => {
+  try {
+    const airlines = await Airline.find({ isActive: true }).sort({ name: 1 });
+    res.json({ success: true, data: airlines });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
 };

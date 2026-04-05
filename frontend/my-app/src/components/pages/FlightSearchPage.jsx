@@ -1,8 +1,17 @@
 import { useState, useEffect } from "react";
-import { ChevronDown, LayoutGrid, List, MapPin, Calendar, Users } from "lucide-react";
+import {
+  ChevronDown,
+  LayoutGrid,
+  List,
+  MapPin,
+  Calendar,
+  Users,
+} from "lucide-react";
 import FlightSearchForm from "../flights/FlightSearchForm";
 import FlightCard from "../flights/FlightCard";
 import FlightFilters from "../flights/FlightFilters";
+import flightService from "../../services/flightService";
+import toast from "react-hot-toast";
 
 const FlightSearchPage = () => {
   const [viewMode, setViewMode] = useState("grid");
@@ -24,116 +33,71 @@ const FlightSearchPage = () => {
   });
   const [isSearching, setIsSearching] = useState(false);
 
-  // Mock data cho chuyến bay
-  const mockFlights = [
-    {
-      id: 1,
-      departure: "HAN",
-      arrival: "SGN",
-      airline: "Vietnam Airlines",
-      logo: "🛫",
-      departTime: "08:00",
-      arriveTime: "10:30",
-      flightNumber: "VN145",
-      duration: "2h 30m",
-      price: 2500000,
-      stops: 0,
-      available: 8,
-      amenities: ["Meal", "WiFi", "Luggage"],
-      rating: 4.8,
-    },
-    {
-      id: 2,
-      departure: "HAN",
-      arrival: "SGN",
-      airline: "Vietjet Air",
-      logo: "✈️",
-      departTime: "10:15",
-      arriveTime: "12:45",
-      flightNumber: "VJ215",
-      duration: "2h 30m",
-      price: 1800000,
-      stops: 0,
-      available: 15,
-      amenities: ["Luggage"],
-      rating: 4.5,
-    },
-    {
-      id: 3,
-      departure: "HAN",
-      arrival: "SGN",
-      airline: "Bamboo Airways",
-      logo: "🎋",
-      departTime: "12:00",
-      arriveTime: "14:30",
-      flightNumber: "BA156",
-      duration: "2h 30m",
-      price: 3200000,
-      stops: 0,
-      available: 12,
-      amenities: ["Meal", "WiFi", "Luggage", "Entertainment"],
-      rating: 4.9,
-    },
-    {
-      id: 4,
-      departure: "HAN",
-      arrival: "SGN",
-      airline: "Vietnam Airlines",
-      logo: "🛫",
-      departTime: "14:30",
-      arriveTime: "17:00",
-      flightNumber: "VN147",
-      duration: "2h 30m",
-      price: 2600000,
-      stops: 0,
-      available: 5,
-      amenities: ["Meal", "WiFi", "Luggage"],
-      rating: 4.8,
-    },
-    {
-      id: 5,
-      departure: "HAN",
-      arrival: "SGN",
-      airline: "Vietjet Air",
-      logo: "✈️",
-      departTime: "16:45",
-      arriveTime: "19:15",
-      flightNumber: "VJ218",
-      duration: "2h 30m",
-      price: 1500000,
-      stops: 0,
-      available: 20,
-      amenities: ["Luggage"],
-      rating: 4.4,
-    },
-    {
-      id: 6,
-      departure: "HAN",
-      arrival: "SGN",
-      airline: "Bamboo Airways",
-      logo: "🎋",
-      departTime: "18:00",
-      arriveTime: "20:30",
-      flightNumber: "BA160",
-      duration: "2h 30m",
-      price: 2800000,
-      stops: 0,
-      available: 9,
-      amenities: ["Meal", "WiFi", "Luggage", "Entertainment"],
-      rating: 4.9,
-    },
-  ];
+  const fetchRealFlights = async (params = null) => {
+    try {
+      setIsSearching(true);
+      let res;
+      // Nếu có params từ search form, có thể gọi api endpoint search. Ở đây dùng get all kết hợp tìm kiếm client đơn giản
+      res = await flightService.getFlights();
+
+      const realFlights = (res.flights || res.data || []).map((dbFlight) => {
+        // Map backend schemas to UI schema
+        return {
+          id: dbFlight._id,
+          departure: dbFlight.origin?.code || "HAN",
+          arrival: dbFlight.destination?.code || "SGN",
+          airline: dbFlight.airline?.name || "Vietnam Airlines",
+          logo: dbFlight.airline?.logo ? (
+            <img
+              src={dbFlight.airline.logo}
+              alt="logo"
+              className="w-8 h-8 object-contain"
+            />
+          ) : (
+            "✈️"
+          ),
+          departTime: new Date(dbFlight.departureTime).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          arriveTime: new Date(dbFlight.arrivalTime).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          flightNumber: dbFlight.flightNumber,
+          duration: dbFlight.duration
+            ? `${Math.floor(dbFlight.duration / 60)}h ${dbFlight.duration % 60}m`
+            : "2h 00m",
+          price: dbFlight.fareClasses?.[0]?.basePrice || 1500000,
+          stops: 0,
+          available: dbFlight.fareClasses?.[0]?.availableSeats || 50,
+          amenities: ["Hành lý", "Ăn uống"],
+          rating: 4.8,
+          // Lưu bản thô để gửi qua page thanh toán
+          raw: dbFlight,
+        };
+      });
+
+      setFlights(realFlights);
+      applyFilters(realFlights);
+    } catch (error) {
+      console.error(error);
+      toast.error("Lỗi nạp chuyến bay thực tế từ máy chủ!");
+      setFlights([]);
+      setFilteredFlights([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRealFlights();
+  }, []);
 
   const handleSearch = (params) => {
     setSearchParams(params);
-    setIsSearching(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      setFlights(mockFlights);
-      applyFilters(mockFlights);
-      setIsSearching(false);
-    }, 500);
+    // Có thể gọi backend search endpoint, nhưng hiện tại chúng ta lấy từ get all fetch
+    fetchRealFlights(params);
   };
 
   const applyFilters = (flightsList) => {
@@ -157,9 +121,7 @@ const FlightSearchPage = () => {
         case "price-desc":
           return b.price - a.price;
         case "duration":
-          return (
-            parseInt(a.duration) - parseInt(b.duration)
-          );
+          return parseInt(a.duration) - parseInt(b.duration);
         case "rating":
           return b.rating - a.rating;
         default:
@@ -169,11 +131,6 @@ const FlightSearchPage = () => {
 
     setFilteredFlights(filtered);
   };
-
-  // Load initial flights when page loads
-  useEffect(() => {
-    setFlights(mockFlights);
-  }, []);
 
   // Apply filters whenever flights, filters, or sortBy change
   useEffect(() => {
@@ -197,7 +154,8 @@ const FlightSearchPage = () => {
                   Kết quả tìm kiếm chuyến bay
                 </h2>
                 <p className="text-sm text-slate-500">
-                  Tìm thấy {filteredFlights.length} chuyến bay phù hợp với tiêu chí của bạn
+                  Tìm thấy {filteredFlights.length} chuyến bay phù hợp với tiêu
+                  chí của bạn
                 </p>
               </div>
 
@@ -259,7 +217,9 @@ const FlightSearchPage = () => {
                       <div className="inline-block">
                         <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
                       </div>
-                      <p className="mt-4 text-slate-500 font-medium">Đang tìm kiếm chuyến bay...</p>
+                      <p className="mt-4 text-slate-500 font-medium">
+                        Đang tìm kiếm chuyến bay...
+                      </p>
                     </div>
                   </div>
                 ) : filteredFlights.length === 0 ? (

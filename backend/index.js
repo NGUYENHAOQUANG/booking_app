@@ -4,6 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
+const mongoose = require('mongoose');
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const flightRoutes = require('./routes/flightRoutes');
@@ -33,6 +34,18 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Health check route
 app.get('/', (req, res) => {
   res.json({ message: 'Booking Web API is running 🚀', status: 'OK' });
+});
+
+// DB + server health check
+app.get('/api/health', (req, res) => {
+  const dbState = mongoose.connection.readyState;
+  const stateMap = { 0: 'disconnected', 1: 'connected', 2: 'connecting', 3: 'disconnecting' };
+  const isConnected = dbState === 1;
+  res.status(isConnected ? 200 : 503).json({
+    status: isConnected ? 'OK' : 'ERROR',
+    database: stateMap[dbState] || 'unknown',
+    timestamp: new Date().toISOString(),
+  });
 });
 app.use('/api/auth', authRoutes);
 app.use('/api/flights', flightRoutes);
