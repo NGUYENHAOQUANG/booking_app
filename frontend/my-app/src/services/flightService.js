@@ -4,15 +4,13 @@ const flightService = {
   // Search flights
   searchFlights: async (params) => {
     try {
-      const response = await Axiosinstance.get("/flights/search", {
-        params: {
-          departure: params.departure,
-          arrival: params.arrival,
-          departDate: params.departDate,
-          returnDate: params.returnDate,
-          passengers: params.passengers,
-          tripType: params.tripType,
-        },
+      const response = await Axiosinstance.post("/flights/search", {
+        origin: params.origin,
+        destination: params.destination,
+        departureDate: params.departureDate,
+        returnDate: params.returnDate,
+        passengers: params.passengers,
+        tripType: params.tripType,
       });
       return response.data;
     } catch (error) {

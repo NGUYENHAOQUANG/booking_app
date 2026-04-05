@@ -16,6 +16,7 @@ import {
 import { ROUTES } from "@/constants/routes";
 import busService from "@/services/busService";
 import userService from "@/services/userService";
+import useAuthStore from "@/store/authStore";
 import toast from "react-hot-toast";
 
 const DEFAULT_TRIP = {
@@ -44,7 +45,17 @@ function splitFullName(fullName = "") {
   };
 }
 
-function Field({ label, value, onChange, placeholder = "", className = "" }) {
+function formatBirthDate(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = String(date.getFullYear());
+  return `${day}/${month}/${year}`;
+}
+
+function Field({ label, value, onChange, placeholder = "", className = "", error = "" }) {
   return (
     <div className={`space-y-2 ${className}`}>
       <label className="text-[11px] font-black uppercase tracking-widest text-slate-500">
@@ -55,8 +66,9 @@ function Field({ label, value, onChange, placeholder = "", className = "" }) {
         value={value}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm outline-none transition-all focus:border-teal-500"
+        className={`h-11 w-full rounded-xl border bg-white px-4 text-sm outline-none transition-all ${error ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-teal-500"}`}
       />
+      {error ? <p className="text-xs font-semibold text-red-500">{error}</p> : null}
     </div>
   );
 }
@@ -86,6 +98,7 @@ function SeatRow({ seatId, passenger }) {
 export default function BusCustomerInfoPage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuthStore();
 
   const busTrip = location.state?.busTrip || DEFAULT_TRIP;
   const tripId = location.state?.tripId;
@@ -99,6 +112,7 @@ export default function BusCustomerInfoPage() {
   const [isGroupPayment, setIsGroupPayment] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [errors, setErrors] = useState({});
 
   const [form, setForm] = useState({
     lastName: "Nguyễn",
@@ -113,10 +127,54 @@ export default function BusCustomerInfoPage() {
     promoCode: "",
   });
 
+  const applyProfileToForm = (profile) => {
+    if (!profile) return;
+    const name = splitFullName(profile.fullName);
+    const birthDate = formatBirthDate(profile.birthDate);
+
+    setForm((current) => ({
+      ...current,
+      lastName: name.lastName || current.lastName,
+      firstName: name.firstName || current.firstName,
+      birthDate: birthDate || current.birthDate,
+      phone: profile.phoneNumber || current.phone,
+      email: profile.email || current.email,
+      country: profile.city || current.country,
+    }));
+  };
+
+  useEffect(() => {
+    applyProfileToForm(user);
+  }, [user]);
+
   const seatPrice = incomingFarePrice > 0 ? incomingFarePrice : 100000;
   const subtotal = Number(location.state?.pricing?.subtotal ?? seatPrice * selectedSeats.length);
   const serviceFee = Number(location.state?.pricing?.serviceFee ?? 10000);
   const total = Number(location.state?.pricing?.total ?? subtotal + serviceFee);
+
+  const validateForm = () => {
+    const nextErrors = {};
+    const requiredFields = [
+      ["lastName", "Vui lòng nhập họ"],
+      ["firstName", "Vui lòng nhập tên đệm và tên"],
+      ["birthDate", "Vui lòng nhập ngày sinh"],
+      ["phone", "Vui lòng nhập số điện thoại"],
+      ["email", "Vui lòng nhập email"],
+      ["country", "Vui lòng nhập quốc gia"],
+      ["idNumber", `Vui lòng nhập ${usePassport ? "số hộ chiếu" : "số CCCD"}`],
+      ["issueDate", "Vui lòng nhập ngày cấp"],
+      ["issuePlace", "Vui lòng nhập nơi cấp"],
+    ];
+
+    requiredFields.forEach(([field, message]) => {
+      if (!String(form[field] || "").trim()) {
+        nextErrors[field] = message;
+      }
+    });
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -128,16 +186,7 @@ export default function BusCustomerInfoPage() {
           return;
         }
 
-        const name = splitFullName(profile.fullName);
-
-        setForm((current) => ({
-          ...current,
-          lastName: name.lastName || current.lastName,
-          firstName: name.firstName || current.firstName,
-          phone: profile.phoneNumber || current.phone,
-          email: profile.email || current.email,
-          country: profile.city || current.country,
-        }));
+        applyProfileToForm(profile);
       } catch {
         // Not logged in or profile unavailable: keep existing form defaults.
       } finally {
@@ -154,23 +203,9 @@ export default function BusCustomerInfoPage() {
   );
 
   const handleCheckout = async () => {
-    const requiredValues = [
-      form.lastName,
-      form.firstName,
-      form.birthDate,
-      form.phone,
-      form.email,
-      form.country,
-      form.idNumber,
-      form.issueDate,
-      form.issuePlace,
-    ];
-
-    const isValid = requiredValues.every((value) => String(value).trim().length > 0);
-
+    const isValid = validateForm();
     if (!isValid) {
-      toast.error("Vui lòng nhập đầy đủ thông tin bắt buộc");
-      navigate(ROUTES.BOOKING_FAILURE);
+      toast.error("Vui lòng nhập đầy đủ thông tin bắt buộc trước khi tiếp tục");
       return;
     }
 
@@ -298,37 +333,73 @@ export default function BusCustomerInfoPage() {
                   label="Họ"
                   value={form.lastName}
                   placeholder="Nguyễn"
-                  onChange={(value) => setForm({ ...form, lastName: value })}
+                  onChange={(value) => {
+                    setForm({ ...form, lastName: value });
+                    if (errors.lastName) {
+                      setErrors((current) => ({ ...current, lastName: "" }));
+                    }
+                  }}
+                  error={errors.lastName}
                 />
                 <Field
                   label="Tên đệm và Tên"
                   value={form.firstName}
                   placeholder="Văn A"
-                  onChange={(value) => setForm({ ...form, firstName: value })}
+                  onChange={(value) => {
+                    setForm({ ...form, firstName: value });
+                    if (errors.firstName) {
+                      setErrors((current) => ({ ...current, firstName: "" }));
+                    }
+                  }}
+                  error={errors.firstName}
                 />
                 <Field
                   label="Ngày sinh"
                   value={form.birthDate}
                   placeholder="dd/mm/YYYY"
-                  onChange={(value) => setForm({ ...form, birthDate: value })}
+                  onChange={(value) => {
+                    setForm({ ...form, birthDate: value });
+                    if (errors.birthDate) {
+                      setErrors((current) => ({ ...current, birthDate: "" }));
+                    }
+                  }}
+                  error={errors.birthDate}
                 />
                 <Field
                   label="Số điện thoại"
                   value={form.phone}
                   placeholder="0123456789"
-                  onChange={(value) => setForm({ ...form, phone: value })}
+                  onChange={(value) => {
+                    setForm({ ...form, phone: value });
+                    if (errors.phone) {
+                      setErrors((current) => ({ ...current, phone: "" }));
+                    }
+                  }}
+                  error={errors.phone}
                 />
                 <Field
                   label="Email"
                   value={form.email}
                   placeholder="email@example.com"
-                  onChange={(value) => setForm({ ...form, email: value })}
+                  onChange={(value) => {
+                    setForm({ ...form, email: value });
+                    if (errors.email) {
+                      setErrors((current) => ({ ...current, email: "" }));
+                    }
+                  }}
+                  error={errors.email}
                 />
                 <Field
                   label="Quốc gia"
                   value={form.country}
                   placeholder="Việt Nam"
-                  onChange={(value) => setForm({ ...form, country: value })}
+                  onChange={(value) => {
+                    setForm({ ...form, country: value });
+                    if (errors.country) {
+                      setErrors((current) => ({ ...current, country: "" }));
+                    }
+                  }}
+                  error={errors.country}
                   className="md:col-span-2"
                 />
               </div>
@@ -359,20 +430,38 @@ export default function BusCustomerInfoPage() {
                   label={usePassport ? "Số hộ chiếu" : "Số CCCD"}
                   value={form.idNumber}
                   placeholder="0123456789"
-                  onChange={(value) => setForm({ ...form, idNumber: value })}
+                  onChange={(value) => {
+                    setForm({ ...form, idNumber: value });
+                    if (errors.idNumber) {
+                      setErrors((current) => ({ ...current, idNumber: "" }));
+                    }
+                  }}
+                  error={errors.idNumber}
                   className="md:col-span-2"
                 />
                 <Field
                   label="Ngày cấp"
                   value={form.issueDate}
                   placeholder="dd/mm/YYYY"
-                  onChange={(value) => setForm({ ...form, issueDate: value })}
+                  onChange={(value) => {
+                    setForm({ ...form, issueDate: value });
+                    if (errors.issueDate) {
+                      setErrors((current) => ({ ...current, issueDate: "" }));
+                    }
+                  }}
+                  error={errors.issueDate}
                 />
                 <Field
                   label="Nơi cấp"
                   value={form.issuePlace}
                   placeholder="CA tỉnh Hoà Thành"
-                  onChange={(value) => setForm({ ...form, issuePlace: value })}
+                  onChange={(value) => {
+                    setForm({ ...form, issuePlace: value });
+                    if (errors.issuePlace) {
+                      setErrors((current) => ({ ...current, issuePlace: "" }));
+                    }
+                  }}
+                  error={errors.issuePlace}
                 />
               </div>
             </section>

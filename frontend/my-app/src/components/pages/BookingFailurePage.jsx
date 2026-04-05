@@ -6,14 +6,45 @@ function formatDate(value) {
   return new Date(value).toLocaleDateString("vi-VN");
 }
 
+function formatTime(value) {
+  if (!value) return "--:--";
+  return new Date(value).toLocaleTimeString("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 const BookingFailurePage = () => {
   const location = useLocation();
   const booking = location.state?.booking;
   const busBooking = location.state?.busBooking;
   const activeBooking = busBooking || booking;
   const busTrip = location.state?.busTrip || {};
+  const flightInfo = location.state?.flightInfo || {};
   const customer = location.state?.customer || {};
   const selectedSeats = location.state?.selectedSeats || [];
+  const outboundFlight = booking?.outboundFlight?.flight || {};
+  const passengerSeats = booking?.passengers?.map((item) => item.seatOutbound).filter(Boolean) || [];
+  const displaySeats = selectedSeats.length ? selectedSeats : passengerSeats;
+
+  const flightServiceName = [
+    outboundFlight?.airline?.name,
+    outboundFlight?.flightNumber,
+  ]
+    .filter(Boolean)
+    .join(" - ");
+
+  const fallbackServiceName = [
+    flightInfo?.airline?.name,
+    flightInfo?.flightNumber,
+  ]
+    .filter(Boolean)
+    .join(" - ");
+
+  const durationMinutes = outboundFlight?.duration || flightInfo?.duration;
+  const formattedDuration = durationMinutes
+    ? `${Math.floor(durationMinutes / 60)}h${String(durationMinutes % 60).padStart(2, "0")}m`
+    : "--";
 
   const ticket = {
     code: activeBooking?.bookingCode || "PENDING",
@@ -21,13 +52,23 @@ const BookingFailurePage = () => {
     customerName: customer.customerName || activeBooking?.contactInfo?.fullName || "--",
     phone: customer.phone || activeBooking?.contactInfo?.phone || "--",
     email: customer.email || activeBooking?.contactInfo?.email || "--",
-    service: busTrip.service || busBooking?.trip?.provider || "VivaVivu",
-    seat: selectedSeats.length ? selectedSeats.join(", ") : "--",
-    departTime: busTrip.departureTime || "--:--",
-    departPlace: busTrip.departurePoint || "--",
-    arriveTime: busTrip.arrivalTime || "--:--",
-    arrivePlace: busTrip.arrivalPoint || "--",
-    duration: busTrip.duration || "--",
+    service: busTrip.service || busBooking?.trip?.provider || flightServiceName || fallbackServiceName || "VivaVivu",
+    seat: displaySeats.length ? displaySeats.join(", ") : "--",
+    departTime: busTrip.departureTime || formatTime(outboundFlight?.departureTime || flightInfo?.departureTime),
+    departPlace:
+      busTrip.departurePoint ||
+      outboundFlight?.origin?.name ||
+      flightInfo?.origin?.name ||
+      flightInfo?.origin?.city ||
+      "--",
+    arriveTime: busTrip.arrivalTime || formatTime(outboundFlight?.arrivalTime || flightInfo?.arrivalTime),
+    arrivePlace:
+      busTrip.arrivalPoint ||
+      outboundFlight?.destination?.name ||
+      flightInfo?.destination?.name ||
+      flightInfo?.destination?.city ||
+      "--",
+    duration: busTrip.duration || formattedDuration,
   };
 
   return (
