@@ -136,7 +136,9 @@ export default function BusSearchPage() {
   const [passengerCount, setPassengerCount] = useState(
     Math.max(1, Number(searchCriteria.passengers) || 2),
   );
-  const [selectedProviders, setSelectedProviders] = useState([]);
+  const [selectedProviders, setSelectedProviders] = useState(
+    Array.isArray(searchCriteria.selectedProviders) ? searchCriteria.selectedProviders : [],
+  );
   const [selectedBusTypes, setSelectedBusTypes] = useState([]);
   const [selectedAmenities, setSelectedAmenities] = useState([]);
   const [departureRange, setDepartureRange] = useState("all");

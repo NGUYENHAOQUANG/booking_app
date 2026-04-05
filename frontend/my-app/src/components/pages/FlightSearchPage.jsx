@@ -35,6 +35,7 @@ function normalizeSearchParams(searchParams) {
     returnDate: searchParams?.returnDate || "",
     passengers: Number(searchParams?.passengers || 2),
     tripType: searchParams?.tripType === "round_trip" ? "round_trip" : "one_way",
+    selectedAirlines: Array.isArray(searchParams?.selectedAirlines) ? searchParams.selectedAirlines : [],
   };
 }
 
@@ -66,6 +67,7 @@ const FlightSearchPage = () => {
   const [timeRange, setTimeRange] = useState("all");
   const [selectedStops, setSelectedStops] = useState(["0", "1", "2+"]);
   const [selectedAirlines, setSelectedAirlines] = useState([]);
+  const [preferredAirlines, setPreferredAirlines] = useState([]);
 
   useEffect(() => {
     const nextSearch = normalizeSearchParams(location.state?.searchParams);
@@ -77,6 +79,7 @@ const FlightSearchPage = () => {
       time: "Cả ngày",
       passengers: nextSearch.passengers,
     });
+    setPreferredAirlines(nextSearch.selectedAirlines || []);
 
     const fetchFlights = async () => {
       try {
@@ -124,7 +127,9 @@ const FlightSearchPage = () => {
         if (mapped.length) {
           const maxInData = Math.max(...mapped.map((item) => item.price));
           setMaxPrice(maxInData);
-          setSelectedAirlines([...new Set(mapped.map((item) => item.airline))]);
+          const airlineSet = [...new Set(mapped.map((item) => item.airline))];
+          const preferred = (nextSearch.selectedAirlines || []).filter((item) => airlineSet.includes(item));
+          setSelectedAirlines(preferred.length ? preferred : airlineSet);
         }
       } catch (error) {
         toast.error(error.response?.data?.message || "Không tải được chuyến bay");
@@ -187,7 +192,13 @@ const FlightSearchPage = () => {
       });
       setTimeRange("all");
       setSelectedStops(["0", "1", "2+"]);
-      setSelectedAirlines(mapped.length ? [...new Set(mapped.map((item) => item.airline))] : []);
+      if (mapped.length) {
+        const airlineSet = [...new Set(mapped.map((item) => item.airline))];
+        const preferred = preferredAirlines.filter((item) => airlineSet.includes(item));
+        setSelectedAirlines(preferred.length ? preferred : airlineSet);
+      } else {
+        setSelectedAirlines([]);
+      }
       if (mapped.length) {
         setMaxPrice(Math.max(...mapped.map((item) => item.price)));
       }

@@ -19,11 +19,13 @@ import {
   Minus,
 } from "lucide-react";
 import api from "@/services/Axiosinstance";
+import toast from "react-hot-toast";
+import useAuthStore from "@/store/authStore";
 
 const AIRLINE_LOGOS = ["VietJet Air", "VNA", "Bamboo", "Vietravel"];
 const BUS_PROVIDERS = ["Phương Trang", "Kumho", "Thành Bưởi", "Hoàng Long"];
 
-const FLASH_DEALS = [
+const DEFAULT_FLASH_DEALS = [
   {
     title: "TP. HỒ CHÍ MINH",
     subtitle: "Roundtrip Economy",
@@ -58,7 +60,7 @@ const FLASH_DEALS = [
   },
 ];
 
-const COMBOS = [
+const DEFAULT_COMBOS = [
   {
     tag: "Xu hướng",
     title: "Chuyến tham gia di sản văn hoá",
@@ -107,6 +109,34 @@ const FEATURE_CARDS = [
   },
 ];
 
+const DEAL_IMAGES = [
+  "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=900",
+  "https://images.unsplash.com/photo-1518544801976-3e159e50e5bb?auto=format&fit=crop&q=80&w=900",
+  "https://images.unsplash.com/photo-1493238792000-8113da705763?auto=format&fit=crop&q=80&w=900",
+  "https://images.unsplash.com/photo-1502920917128-1aa500764cbd?auto=format&fit=crop&q=80&w=900",
+];
+
+const COMBO_IMAGES = [
+  "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=1200",
+  "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&q=80&w=1200",
+  "https://images.unsplash.com/photo-1526772662000-3f88f10405ff?auto=format&fit=crop&q=80&w=1200",
+  "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&q=80&w=1200",
+];
+
+function formatVnd(value) {
+  return `${new Intl.NumberFormat("vi-VN").format(Math.max(0, Number(value || 0)))}VND`;
+}
+
+function formatDurationMinutes(minutes) {
+  const total = Number(minutes || 0);
+  if (!total) return "Thời lượng linh hoạt";
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  if (!h) return `${m} phút`;
+  if (!m) return `${h} giờ`;
+  return `${h} giờ ${m} phút`;
+}
+
 function SearchTab({ active, icon: Icon, label, onClick }) {
   return (
     <button
@@ -120,7 +150,7 @@ function SearchTab({ active, icon: Icon, label, onClick }) {
   );
 }
 
-function DealCard({ deal }) {
+function DealCard({ deal, onBook }) {
   return (
     <article className="w-[260px] shrink-0 rounded-[22px] overflow-hidden bg-white shadow-[0_10px_28px_rgba(15,23,42,0.08)] border border-black/5">
       <div className="h-[160px] overflow-hidden">
@@ -134,12 +164,19 @@ function DealCard({ deal }) {
           <span className="text-[15px] font-bold text-orange-500">{deal.price}</span>
           <span className="text-[12px] text-slate-300 line-through">{deal.oldPrice}</span>
         </div>
+        <button
+          type="button"
+          onClick={onBook}
+          className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-lg bg-teal-600 px-3 text-xs font-bold text-white transition-colors hover:bg-teal-700"
+        >
+          Chọn và đặt ngay
+        </button>
       </div>
     </article>
   );
 }
 
-function ComboCard({ combo }) {
+function ComboCard({ combo, onBook }) {
   const isTrending = combo.tag === "Thịnh hành";
 
   return (
@@ -162,6 +199,14 @@ function ComboCard({ combo }) {
         <p className="mt-1 text-[14px] md:text-[15px] text-white/85 font-semibold leading-tight drop-shadow-sm">
           {combo.subtitle}
         </p>
+        <button
+          type="button"
+          onClick={onBook}
+          className="mt-3 inline-flex w-fit items-center gap-2 rounded-full bg-white/90 px-4 py-2 text-xs font-bold text-slate-900 transition-colors hover:bg-white"
+        >
+          Đặt chuyến này
+          <ArrowRight size={14} />
+        </button>
       </div>
     </article>
   );
@@ -169,6 +214,7 @@ function ComboCard({ combo }) {
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
   const [tab, setTab] = useState("flight");
   const [tripType, setTripType] = useState("round");
   const [origin, setOrigin] = useState("HAN");
@@ -181,8 +227,44 @@ export default function HomePage() {
   const [passengers, setPassengers] = useState(2);
   const [airports, setAirports] = useState([]);
   const [airportLoading, setAirportLoading] = useState(false);
-  const deals = useMemo(() => FLASH_DEALS, []);
+  const [selectedAirlines, setSelectedAirlines] = useState(AIRLINE_LOGOS);
+  const [selectedBusProviders, setSelectedBusProviders] = useState(BUS_PROVIDERS);
+  const [flashDeals, setFlashDeals] = useState([]);
+  const [comboTrips, setComboTrips] = useState([]);
+
+  const deals = useMemo(
+    () => (flashDeals.length ? flashDeals : DEFAULT_FLASH_DEALS),
+    [flashDeals],
+  );
+
+  const combos = useMemo(() => {
+    const source = comboTrips.length ? comboTrips : DEFAULT_COMBOS;
+    const normalized = [...source];
+    while (normalized.length < 4) {
+      normalized.push(DEFAULT_COMBOS[normalized.length % DEFAULT_COMBOS.length]);
+    }
+    return normalized.slice(0, 4);
+  }, [comboTrips]);
+
   const providers = tab === "flight" ? AIRLINE_LOGOS : BUS_PROVIDERS;
+
+  const buildFlightSeatPath = (flightId) => ROUTES.FLIGHT_SEATS.replace(":flightId", flightId);
+
+  const requireLoginThenNavigate = (path, state) => {
+    if (!isLoggedIn) {
+      toast("Vui lòng đăng nhập để tiếp tục đặt vé", { icon: "🔐" });
+      navigate(ROUTES.LOGIN, {
+        state: {
+          redirectTo: {
+            path,
+            state,
+          },
+        },
+      });
+      return;
+    }
+    navigate(path, { state });
+  };
 
   useEffect(() => {
     const loadAirports = async () => {
@@ -211,19 +293,157 @@ export default function HomePage() {
     loadAirports();
   }, []);
 
+  useEffect(() => {
+    const loadHomeHighlights = async () => {
+      try {
+        const [flightRes, busRes] = await Promise.all([
+          api.get("/flights"),
+          api.get("/buses", { params: { passengers: 1 } }),
+        ]);
+
+        const flights = Array.isArray(flightRes.data?.flights || flightRes.data?.data)
+          ? (flightRes.data.flights || flightRes.data.data)
+          : [];
+        const buses = Array.isArray(busRes.data?.data) ? busRes.data.data : [];
+
+        const mappedDeals = flights.slice(0, 8).map((flight, index) => {
+          const basePrice = Number(flight?.fareClasses?.[0]?.basePrice || 0);
+          const oldPrice = Math.round(basePrice * 1.2);
+          const toCity = flight?.destination?.city || flight?.destination?.name || "Điểm đến";
+          const fromCode = flight?.origin?.code || "---";
+          const toCode = flight?.destination?.code || "---";
+          return {
+            id: flight?._id,
+            title: toCity.toUpperCase(),
+            subtitle: `${fromCode} → ${toCode} • ${flight?.airline?.name || "Chuyến bay"}`,
+            price: formatVnd(basePrice),
+            oldPrice: formatVnd(oldPrice),
+            image: DEAL_IMAGES[index % DEAL_IMAGES.length],
+            bookingType: "flight",
+            bookingPath: flight?._id ? buildFlightSeatPath(flight._id) : ROUTES.FLIGHT_SEARCH,
+            bookingState: {
+              searchParams: {
+                departure: fromCode,
+                arrival: toCode,
+                departDate: new Date().toISOString().slice(0, 10),
+                passengers: 1,
+                tripType: "one_way",
+              },
+            },
+          };
+        });
+
+        const mappedBusCombos = buses.slice(0, 2).map((trip, index) => ({
+          id: trip?._id,
+          tag: (trip?.availableSeats || 0) > 10 ? "Xu hướng" : "Thịnh hành",
+          title: `${trip?.origin || "Điểm đi"} - ${trip?.destination || "Điểm đến"}`,
+          subtitle: `${trip?.provider || "Nhà xe"} • ${formatDurationMinutes(trip?.durationMinutes)}`,
+          image: COMBO_IMAGES[index % COMBO_IMAGES.length],
+          bookingType: "bus",
+          bookingPath: ROUTES.BUS_SEATS,
+          bookingState: {
+            tripId: trip?._id,
+            farePrice: Number(trip?.pricePerSeat || 0),
+            passengerCount: 1,
+            busTrip: {
+              route: `${trip?.origin || "Điểm đi"} → ${trip?.destination || "Điểm đến"}`,
+              service: trip?.provider || "VivaVivu",
+              departureDate: trip?.departureTime ? new Date(trip.departureTime).toLocaleDateString("vi-VN") : "",
+              departureTime: trip?.departureTime ? new Date(trip.departureTime).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : "",
+              departurePoint: trip?.pickupPoint || "Điểm đi",
+              arrivalPoint: trip?.dropoffPoint || "Điểm đến",
+              arrivalTime: trip?.arrivalTime ? new Date(trip.arrivalTime).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : "",
+              duration: formatDurationMinutes(trip?.durationMinutes),
+            },
+          },
+        }));
+
+        const mappedFlightCombos = flights.slice(0, 2).map((flight, index) => ({
+          id: flight?._id,
+          tag: "Thịnh hành",
+          title: `${flight?.origin?.city || flight?.origin?.code || "Điểm đi"} - ${flight?.destination?.city || flight?.destination?.code || "Điểm đến"}`,
+          subtitle: `${flight?.airline?.name || "Hãng bay"} • ${formatDurationMinutes(flight?.duration)}`,
+          image: COMBO_IMAGES[(index + mappedBusCombos.length) % COMBO_IMAGES.length],
+          bookingType: "flight",
+          bookingPath: flight?._id ? buildFlightSeatPath(flight._id) : ROUTES.FLIGHT_SEARCH,
+          bookingState: {
+            searchParams: {
+              departure: flight?.origin?.code || "",
+              arrival: flight?.destination?.code || "",
+              departDate: new Date().toISOString().slice(0, 10),
+              passengers: 1,
+              tripType: "one_way",
+            },
+          },
+        }));
+
+        if (mappedDeals.length) setFlashDeals(mappedDeals);
+        const mergedCombos = [...mappedBusCombos, ...mappedFlightCombos];
+        if (mergedCombos.length) setComboTrips(mergedCombos.slice(0, 4));
+      } catch {
+        // Keep fallback static data when highlight APIs are unavailable.
+      }
+    };
+
+    loadHomeHighlights();
+  }, []);
+
   const airportOptions = useMemo(() => airports.map((item) => item.value), [airports]);
 
+  const toggleProvider = (provider) => {
+    if (tab === "flight") {
+      setSelectedAirlines((current) =>
+        current.includes(provider) ? current.filter((item) => item !== provider) : [...current, provider],
+      );
+      return;
+    }
+
+    setSelectedBusProviders((current) =>
+      current.includes(provider) ? current.filter((item) => item !== provider) : [...current, provider],
+    );
+  };
+
   const handleSearch = () => {
+    const originCode = String(origin || "").trim().toUpperCase();
+    const destinationCode = String(destination || "").trim().toUpperCase();
+    const selectedProviders = tab === "flight" ? selectedAirlines : selectedBusProviders;
+
+    if (!originCode || !destinationCode) {
+      toast.error("Vui lòng nhập đầy đủ điểm đi và điểm đến");
+      return;
+    }
+
+    if (originCode === destinationCode) {
+      toast.error("Điểm đi và điểm đến không được trùng nhau");
+      return;
+    }
+
+    if (!departDate) {
+      toast.error("Vui lòng chọn ngày đi");
+      return;
+    }
+
+    if (tripType === "round" && returnDate && new Date(returnDate) < new Date(departDate)) {
+      toast.error("Ngày về phải lớn hơn hoặc bằng ngày đi");
+      return;
+    }
+
+    if (!selectedProviders.length) {
+      toast.error(tab === "flight" ? "Vui lòng chọn ít nhất 1 hãng bay" : "Vui lòng chọn ít nhất 1 nhà xe");
+      return;
+    }
+
     if (tab === "flight") {
       navigate(ROUTES.FLIGHT_SEARCH, {
         state: {
           searchParams: {
-            departure: origin,
-            arrival: destination,
+            departure: originCode,
+            arrival: destinationCode,
             departDate,
             returnDate: tripType === "round" ? returnDate : "",
             passengers,
             tripType: tripType === "round" ? "round_trip" : "one_way",
+            selectedAirlines,
           },
         },
       });
@@ -233,11 +453,12 @@ export default function HomePage() {
     navigate(ROUTES.BUS_SEARCH, {
       state: {
         searchCriteria: {
-          origin,
-          destination,
+          origin: originCode,
+          destination: destinationCode,
           rawDate: departDate,
           departureDate: new Date(departDate).toLocaleDateString("vi-VN"),
           passengers,
+          selectedProviders: selectedBusProviders,
         },
       },
     });
@@ -246,6 +467,66 @@ export default function HomePage() {
   const swapDirection = () => {
     setOrigin(destination);
     setDestination(origin);
+  };
+
+  const handleBookDeal = (deal) => {
+    if (deal?.bookingType === "flight" && deal?.id) {
+      requireLoginThenNavigate(buildFlightSeatPath(deal.id), {});
+      return;
+    }
+
+    navigate(ROUTES.FLIGHT_SEARCH, {
+      state: {
+        searchParams: {
+          departure: origin,
+          arrival: destination,
+          departDate,
+          passengers,
+          tripType: tripType === "round" ? "round_trip" : "one_way",
+          selectedAirlines,
+        },
+      },
+    });
+  };
+
+  const handleBookCombo = (combo) => {
+    if (combo?.bookingType === "bus") {
+      if (!combo?.bookingState?.tripId) {
+        navigate(ROUTES.BUS_SEARCH, {
+          state: {
+            searchCriteria: {
+              origin,
+              destination,
+              rawDate: departDate,
+              departureDate: new Date(departDate).toLocaleDateString("vi-VN"),
+              passengers,
+              selectedProviders: selectedBusProviders,
+            },
+          },
+        });
+        return;
+      }
+      requireLoginThenNavigate(ROUTES.BUS_SEATS, combo.bookingState);
+      return;
+    }
+
+    if (combo?.bookingType === "flight" && combo?.id) {
+      requireLoginThenNavigate(buildFlightSeatPath(combo.id), {});
+      return;
+    }
+
+    navigate(ROUTES.FLIGHT_SEARCH, {
+      state: {
+        searchParams: {
+          departure: origin,
+          arrival: destination,
+          departDate,
+          passengers,
+          tripType: tripType === "round" ? "round_trip" : "one_way",
+          selectedAirlines,
+        },
+      },
+    });
   };
 
   return (
@@ -293,7 +574,12 @@ export default function HomePage() {
                 <div className="flex flex-wrap items-center justify-center gap-5 sm:gap-6 mb-8">
                   {providers.map((logo) => (
                     <div key={logo} className="flex items-center gap-2 text-slate-700">
-                      <input type="checkbox" defaultChecked className="accent-teal-600" />
+                      <input
+                        type="checkbox"
+                        checked={tab === "flight" ? selectedAirlines.includes(logo) : selectedBusProviders.includes(logo)}
+                        onChange={() => toggleProvider(logo)}
+                        className="accent-teal-600"
+                      />
                       <div className={`h-8 w-24 rounded-sm bg-white border border-slate-200 grid place-items-center text-[10px] font-black leading-none ${tab === "flight" ? "text-rose-500" : "text-teal-700"}`}>
                         {logo}
                       </div>
@@ -359,7 +645,7 @@ export default function HomePage() {
 
           <div className="flex gap-6 overflow-x-auto pb-3 hide-scrollbar">
             {deals.map((deal, index) => (
-              <DealCard key={`${deal.title}-${index}`} deal={deal} />
+              <DealCard key={`${deal.title}-${index}`} deal={deal} onBook={() => handleBookDeal(deal)} />
             ))}
           </div>
         </section>
@@ -374,16 +660,16 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
             <div className="lg:col-span-8">
-              <ComboCard combo={COMBOS[0]} />
+              <ComboCard combo={combos[0]} onBook={() => handleBookCombo(combos[0])} />
             </div>
             <div className="lg:col-span-4">
-              <ComboCard combo={COMBOS[1]} />
+              <ComboCard combo={combos[1]} onBook={() => handleBookCombo(combos[1])} />
             </div>
             <div className="lg:col-span-4">
-              <ComboCard combo={COMBOS[2]} />
+              <ComboCard combo={combos[2]} onBook={() => handleBookCombo(combos[2])} />
             </div>
             <div className="lg:col-span-8">
-              <ComboCard combo={COMBOS[3]} />
+              <ComboCard combo={combos[3]} onBook={() => handleBookCombo(combos[3])} />
             </div>
           </div>
         </section>
