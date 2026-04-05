@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/constants/routes";
 import {
@@ -15,7 +15,10 @@ import {
   MapPinned,
   Headphones,
   BadgeCheck,
+  Plus,
+  Minus,
 } from "lucide-react";
+import api from "@/services/Axiosinstance";
 
 const AIRLINE_LOGOS = ["VietJet Air", "VNA", "Bamboo", "Vietravel"];
 const BUS_PROVIDERS = ["Phương Trang", "Kumho", "Thành Bưởi", "Hoàng Long"];
@@ -168,16 +171,81 @@ export default function HomePage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState("flight");
   const [tripType, setTripType] = useState("round");
+  const [origin, setOrigin] = useState("HAN");
+  const [destination, setDestination] = useState("SGN");
+  const [departDate, setDepartDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [returnDate, setReturnDate] = useState(() => {
+    const nextDay = new Date(Date.now() + 86400000);
+    return nextDay.toISOString().slice(0, 10);
+  });
+  const [passengers, setPassengers] = useState(2);
+  const [airports, setAirports] = useState([]);
+  const [airportLoading, setAirportLoading] = useState(false);
   const deals = useMemo(() => FLASH_DEALS, []);
   const providers = tab === "flight" ? AIRLINE_LOGOS : BUS_PROVIDERS;
 
+  useEffect(() => {
+    const loadAirports = async () => {
+      try {
+        setAirportLoading(true);
+        const response = await api.get("/flights/airports");
+        const items = Array.isArray(response.data?.data) ? response.data.data : [];
+        const mapped = items.map((airport) => ({
+          value: airport.code,
+          label: `${airport.city} (${airport.code})`,
+        }));
+        setAirports(mapped);
+      } catch {
+        setAirports([
+          { value: "HAN", label: "Hà Nội (HAN)" },
+          { value: "SGN", label: "TP.HCM (SGN)" },
+          { value: "DAD", label: "Đà Nẵng (DAD)" },
+          { value: "CXR", label: "Nha Trang (CXR)" },
+          { value: "DLI", label: "Đà Lạt (DLI)" },
+        ]);
+      } finally {
+        setAirportLoading(false);
+      }
+    };
+
+    loadAirports();
+  }, []);
+
+  const airportOptions = useMemo(() => airports.map((item) => item.value), [airports]);
+
   const handleSearch = () => {
     if (tab === "flight") {
-      navigate(ROUTES.FLIGHT_SEARCH);
+      navigate(ROUTES.FLIGHT_SEARCH, {
+        state: {
+          searchParams: {
+            departure: origin,
+            arrival: destination,
+            departDate,
+            returnDate: tripType === "round" ? returnDate : "",
+            passengers,
+            tripType: tripType === "round" ? "round_trip" : "one_way",
+          },
+        },
+      });
       return;
     }
 
-    navigate(ROUTES.BUS_SEARCH);
+    navigate(ROUTES.BUS_SEARCH, {
+      state: {
+        searchCriteria: {
+          origin,
+          destination,
+          rawDate: departDate,
+          departureDate: new Date(departDate).toLocaleDateString("vi-VN"),
+          passengers,
+        },
+      },
+    });
+  };
+
+  const swapDirection = () => {
+    setOrigin(destination);
+    setDestination(origin);
   };
 
   return (
@@ -234,16 +302,42 @@ export default function HomePage() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr_1fr_1fr_1fr] gap-3 items-end bg-[#eff4f5] p-4 rounded-[4px] shadow-[0_10px_20px_rgba(15,23,42,0.08)]">
-                  <Field label="Điểm đi" placeholder="Chọn điểm đi" icon={MapPin} />
+                  <SuggestField
+                    label="Điểm đi"
+                    icon={MapPin}
+                    value={origin}
+                    options={airportOptions}
+                    onChange={setOrigin}
+                    loading={airportLoading}
+                    listId="origin-options"
+                  />
                   <div className="hidden lg:flex items-center justify-center">
-                    <button type="button" className="w-10 h-10 rounded-lg bg-[#19a99f] text-white grid place-items-center shadow-sm">
+                    <button
+                      type="button"
+                      onClick={swapDirection}
+                      className="w-10 h-10 rounded-lg bg-[#19a99f] text-white grid place-items-center shadow-sm"
+                    >
                       ↔
                     </button>
                   </div>
-                  <Field label="Điểm đến" placeholder="Chọn điểm đến" icon={MapPin} />
-                  <Field label="Ngày đi" placeholder="01/01/2026" icon={CalendarDays} />
-                  <Field label="Ngày về" placeholder="02/01/2026" icon={CalendarDays} />
-                  <Field label="Số lượng" placeholder="1" icon={Users} />
+                  <SuggestField
+                    label="Điểm đến"
+                    icon={MapPin}
+                    value={destination}
+                    options={airportOptions}
+                    onChange={setDestination}
+                    loading={airportLoading}
+                    listId="destination-options"
+                  />
+                  <DateField label="Ngày đi" icon={CalendarDays} value={departDate} onChange={setDepartDate} />
+                  <DateField
+                    label="Ngày về"
+                    icon={CalendarDays}
+                    value={returnDate}
+                    onChange={setReturnDate}
+                    disabled={tripType !== "round"}
+                  />
+                  <PassengerField value={passengers} onChange={setPassengers} />
                 </div>
               </div>
             </div>
@@ -317,7 +411,7 @@ export default function HomePage() {
   );
 }
 
-function Field({ label, placeholder, icon: Icon }) {
+function SuggestField({ label, value, onChange, options, icon: Icon, loading, listId }) {
   return (
     <label className="flex flex-col gap-1.5 min-w-0">
       <span className="text-[13px] font-medium text-slate-700 pl-2">{label}</span>
@@ -325,9 +419,61 @@ function Field({ label, placeholder, icon: Icon }) {
         <Icon size={16} className="text-slate-300 shrink-0" />
         <input
           type="text"
-          placeholder={placeholder}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          list={listId}
           className="w-full min-w-0 bg-transparent outline-none text-sm text-slate-600 placeholder:text-slate-300"
         />
+        <datalist id={listId}>
+          {options.map((item) => (
+            <option key={item} value={item} />
+          ))}
+        </datalist>
+      </div>
+      {loading ? <span className="text-[11px] text-slate-400 pl-2">Đang tải gợi ý...</span> : null}
+    </label>
+  );
+}
+
+function DateField({ label, value, onChange, icon: Icon, disabled = false }) {
+  return (
+    <label className="flex flex-col gap-1.5 min-w-0">
+      <span className="text-[13px] font-medium text-slate-700 pl-2">{label}</span>
+      <div className="flex items-center gap-2 h-12 rounded-md bg-white px-3 border border-slate-200 shadow-sm">
+        <Icon size={16} className="text-slate-300 shrink-0" />
+        <input
+          type="date"
+          value={value}
+          disabled={disabled}
+          onChange={(event) => onChange(event.target.value)}
+          className="w-full min-w-0 bg-transparent outline-none text-sm text-slate-600 disabled:text-slate-300"
+        />
+      </div>
+    </label>
+  );
+}
+
+function PassengerField({ value, onChange }) {
+  return (
+    <label className="flex flex-col gap-1.5 min-w-0">
+      <span className="text-[13px] font-medium text-slate-700 pl-2">Số lượng</span>
+      <div className="flex items-center gap-2 h-12 rounded-md bg-white px-3 border border-slate-200 shadow-sm">
+        <Users size={16} className="text-slate-300 shrink-0" />
+        <button
+          type="button"
+          onClick={() => onChange(Math.max(1, value - 1))}
+          className="h-7 w-7 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50"
+        >
+          <Minus size={14} className="mx-auto" />
+        </button>
+        <span className="min-w-[64px] text-center text-sm font-semibold text-slate-700">{value} khách</span>
+        <button
+          type="button"
+          onClick={() => onChange(Math.min(9, value + 1))}
+          className="h-7 w-7 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50"
+        >
+          <Plus size={14} className="mx-auto" />
+        </button>
       </div>
     </label>
   );
