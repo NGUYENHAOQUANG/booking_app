@@ -19,7 +19,7 @@ const MainLayout = () => {
       />
 
       {/* Main Content Area */}
-      <main className="pt-24 pb-20">
+      <main className="pt-[64px] pb-0">
         <Outlet />
       </main>
 
