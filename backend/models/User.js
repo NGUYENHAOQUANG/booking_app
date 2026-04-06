@@ -51,6 +51,21 @@ const UserSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    gender: {
+      type: String,
+      enum: ["male", "female", "other", ""],
+      default: "",
+      trim: true,
+    },
+    birthDate: {
+      type: Date,
+    },
+    city: {
+      type: String,
+      trim: true,
+      maxlength: [120, "Nơi cư trú tối đa 120 ký tự"],
+      default: "",
+    },
 
     // ── ROLE (ObjectId → collection roles) ──────────────────────────────────
     role: {

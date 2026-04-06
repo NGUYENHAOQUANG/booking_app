@@ -11,6 +11,7 @@ const flightRoutes = require('./routes/flightRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const userRoutes = require('./routes/userRoutes');
 const carRoutes = require('./routes/carRoutes');
+const busRoutes = require('./routes/busRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -19,6 +20,7 @@ const PORT = process.env.PORT || 5000;
 connectDB().then(() => {
   // Tự động chạy seeder cho roles
   require('./seeders/seedRoles').seedRoles().catch(console.error);
+  require('./seeders/seedBusData').seedBusData().catch(console.error);
 });
 
 // Middleware
@@ -52,6 +54,7 @@ app.use('/api/flights', flightRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/cars', carRoutes);
+app.use('/api/buses', busRoutes);
 
 // 404 handler
 app.use((req, res) => {

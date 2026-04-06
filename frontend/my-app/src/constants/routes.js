@@ -19,7 +19,8 @@ export const ROUTES = {
 
   // ── Bus ─────────────────────────────────────────────────────────
   BUS_SEARCH:           "/buses",             // Tìm kiếm xe khách
-  BUS_PAYMENT:          "/bus-payment",       // Thông tin thanh toán vé xe khách
+  BUS_SEATS:            "/bus-seats",         // Chọn ghế xe khách
+  BUS_CUSTOMER_INFO:    "/bus-customer-info", // Nhập thông tin khách hàng xe khách
 
   // ── User (protected) ─────────────────────────────────────────────
   DASHBOARD:            "/dashboard",

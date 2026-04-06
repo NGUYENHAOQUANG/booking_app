@@ -42,18 +42,19 @@ export const router = createBrowserRouter([
       // Public pages
       { path: ROUTES.HOME,          element: lazy_(() => import("@/components/pages/HomePage")) },
       { path: ROUTES.SEARCH,        element: lazy_(() => import("@/components/pages/SearchPage")) },
+      { path: ROUTES.BUS_SEARCH,    element: lazy_(() => import("@/components/pages/BusSearchPage")) },
       { path: ROUTES.FLIGHT_SEARCH, element: lazy_(() => import("@/components/pages/FlightSearchPage")) },
-      { path: ROUTES.FLIGHT_SEATS,  element: lazy_(() => import("@/components/pages/FlightSeatsPage")) },
       { path: ROUTES.CHECKOUT,      element: lazy_(() => import("@/components/pages/CheckoutPage")) },
       { path: ROUTES.ROOM_DETAIL,   element: lazy_(() => import("@/components/pages/RoomDetailPage")) },
-      { path: ROUTES.FLIGHT_PAYMENT, element: lazy_(() => import("@/components/pages/FlightPaymentPage")) },
-      { path: ROUTES.BUS_PAYMENT,   element: lazy_(() => import("@/components/pages/BusPaymentPage")) },
 
       // Protected user routes
       {
         element: <PrivateRoute />,
         children: [
-          { path: ROUTES.DASHBOARD,            element: lazy_(() => import("@/components/pages/DashboardPage")) },
+          { path: ROUTES.BUS_SEATS,            element: lazy_(() => import("@/components/pages/BusSeatSelectionPage")) },
+          { path: ROUTES.BUS_CUSTOMER_INFO,    element: lazy_(() => import("@/components/pages/BusCustomerInfoPage")) },
+          { path: ROUTES.FLIGHT_SEATS,         element: lazy_(() => import("@/components/pages/FlightSeatsPage")) },
+          { path: ROUTES.FLIGHT_PAYMENT,       element: lazy_(() => import("@/components/pages/FlightPaymentPage")) },
           { path: ROUTES.PROFILE,              element: lazy_(() => import("@/components/pages/ProfilePage")) },
           { path: ROUTES.BOOKING,              element: lazy_(() => import("@/components/pages/BookingPage")) },
           { path: ROUTES.BOOKING_CONFIRMATION, element: lazy_(() => import("@/components/pages/BookingConfirmationPage")) },
