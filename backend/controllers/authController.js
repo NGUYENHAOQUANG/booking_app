@@ -4,16 +4,20 @@ const crypto = require("crypto");
 const User = require("../models/User");
 const { sendPasswordResetOtpEmail } = require("../utils/email");
 
-const JWT_SECRET          = process.env.JWT_SECRET          || "change_this_secret";
-const JWT_EXPIRES_IN      = process.env.JWT_EXPIRES_IN      || "15m";
-const JWT_REFRESH_SECRET  = process.env.JWT_REFRESH_SECRET  || "change_this_refresh_secret";
+const JWT_SECRET = process.env.JWT_SECRET || "change_this_secret";
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "15m";
+const JWT_REFRESH_SECRET =
+  process.env.JWT_REFRESH_SECRET || "change_this_refresh_secret";
 const JWT_REFRESH_EXPIRES = process.env.JWT_REFRESH_EXPIRES || "7d";
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
-const signAccessToken  = (id) => jwt.sign({ id }, JWT_SECRET,         { expiresIn: JWT_EXPIRES_IN });
-const signRefreshToken = (id) => jwt.sign({ id }, JWT_REFRESH_SECRET, { expiresIn: JWT_REFRESH_EXPIRES });
-const normalizePhoneNumber = (value = "") => String(value).replace(/[^\d+]/g, "");
+const signAccessToken = (id) =>
+  jwt.sign({ id }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+const signRefreshToken = (id) =>
+  jwt.sign({ id }, JWT_REFRESH_SECRET, { expiresIn: JWT_REFRESH_EXPIRES });
+const normalizePhoneNumber = (value = "") =>
+  String(value).replace(/[^\d+]/g, "");
 const MAX_OTP_ATTEMPTS = 5;
 
 const handleInvalidOtpAttempt = async (user) => {
@@ -31,20 +35,22 @@ const handleInvalidOtpAttempt = async (user) => {
 };
 
 const sendTokens = async (user, statusCode, res) => {
-  const accessToken  = signAccessToken(user._id);
+  const accessToken = signAccessToken(user._id);
   const refreshToken = signRefreshToken(user._id);
 
   // Lưu refresh token dạng hash vào DB
   const hashed = crypto.createHash("sha256").update(refreshToken).digest("hex");
   await User.findByIdAndUpdate(user._id, { refreshToken: hashed });
 
-  user.password     = undefined;
+  user.password = undefined;
   user.refreshToken = undefined;
+
+  const isProduction = process.env.NODE_ENV === "production";
 
   const cookieOptions = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax", // 'none' Required for cross-site cookies on Render
   };
 
   res.cookie("accessToken", accessToken, {
@@ -59,9 +65,9 @@ const sendTokens = async (user, statusCode, res) => {
 
   res.cookie("isLoggedIn", "true", {
     httpOnly: false,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
   res.status(statusCode).json({ success: true, data: { user } });
@@ -71,7 +77,14 @@ const sendTokens = async (user, statusCode, res) => {
 
 exports.register = async (req, res) => {
   try {
-    const { fullName, email, phoneNumber, password, acceptTerms, allowPromotions } = req.body;
+    const {
+      fullName,
+      email,
+      phoneNumber,
+      password,
+      acceptTerms,
+      allowPromotions,
+    } = req.body;
     const user = await User.create({
       fullName,
       email,
@@ -85,7 +98,9 @@ exports.register = async (req, res) => {
   } catch (err) {
     if (err.code === 11000) {
       const field = Object.keys(err.keyValue)[0];
-      return res.status(400).json({ success: false, message: `${field} đã tồn tại` });
+      return res
+        .status(400)
+        .json({ success: false, message: `${field} đã tồn tại` });
     }
     res.status(400).json({ success: false, message: err.message });
   }
@@ -96,7 +111,12 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { password } = req.body;
-    const identifier = (req.body.identifier || req.body.email || req.body.phoneNumber || "").trim();
+    const identifier = (
+      req.body.identifier ||
+      req.body.email ||
+      req.body.phoneNumber ||
+      ""
+    ).trim();
     const isEmail = identifier.includes("@");
     const query = isEmail
       ? { email: identifier.toLowerCase() }
@@ -107,19 +127,28 @@ exports.login = async (req, res) => {
       .populate("role", "name displayName permissions");
 
     if (!user)
-      return res.status(401).json({ success: false, message: "Email hoặc password không đúng" });
+      return res
+        .status(401)
+        .json({ success: false, message: "Email hoặc password không đúng" });
 
     if (user.isLocked)
-      return res.status(423).json({ success: false, message: "Tài khoản bị khóa tạm thời. Thử lại sau 30 phút." });
+      return res.status(423).json({
+        success: false,
+        message: "Tài khoản bị khóa tạm thời. Thử lại sau 30 phút.",
+      });
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       await user.incrementLoginAttempts();
-      return res.status(401).json({ success: false, message: "Email hoặc password không đúng" });
+      return res
+        .status(401)
+        .json({ success: false, message: "Email hoặc password không đúng" });
     }
 
     if (!user.isActive)
-      return res.status(403).json({ success: false, message: "Tài khoản đã bị vô hiệu hóa" });
+      return res
+        .status(403)
+        .json({ success: false, message: "Tài khoản đã bị vô hiệu hóa" });
 
     await User.findByIdAndUpdate(user._id, {
       $set: { loginAttempts: 0, lastLogin: new Date() },
@@ -137,29 +166,42 @@ exports.login = async (req, res) => {
 exports.refreshToken = async (req, res) => {
   try {
     const refreshToken = req.cookies.refreshToken;
-    
+
     if (!refreshToken) {
-      return res.status(401).json({ success: false, message: "Không tìm thấy token. Vui lòng đăng nhập lại." });
+      return res.status(401).json({
+        success: false,
+        message: "Không tìm thấy token. Vui lòng đăng nhập lại.",
+      });
     }
 
     // Verify chữ ký
     const decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET);
 
     // Kiểm tra token có khớp với DB không
-    const hashed = crypto.createHash("sha256").update(refreshToken).digest("hex");
+    const hashed = crypto
+      .createHash("sha256")
+      .update(refreshToken)
+      .digest("hex");
     const user = await User.findOne({ _id: decoded.id, refreshToken: hashed })
       .select("+refreshToken")
       .populate("role", "name displayName permissions");
 
     if (!user)
-      return res.status(401).json({ success: false, message: "Refresh token không hợp lệ" });
+      return res
+        .status(401)
+        .json({ success: false, message: "Refresh token không hợp lệ" });
 
     if (!user.isActive)
-      return res.status(403).json({ success: false, message: "Tài khoản đã bị vô hiệu hóa" });
+      return res
+        .status(403)
+        .json({ success: false, message: "Tài khoản đã bị vô hiệu hóa" });
 
     await sendTokens(user, 200, res);
   } catch (err) {
-    res.status(401).json({ success: false, message: "Refresh token hết hạn hoặc không hợp lệ" });
+    res.status(401).json({
+      success: false,
+      message: "Refresh token hết hạn hoặc không hợp lệ",
+    });
   }
 };
 
@@ -169,10 +211,10 @@ exports.logout = async (req, res) => {
   try {
     // Xóa refresh token → vô hiệu hóa hoàn toàn
     await User.findByIdAndUpdate(req.user._id, { $unset: { refreshToken: 1 } });
-    
-    res.clearCookie('accessToken');
-    res.clearCookie('refreshToken');
-    res.clearCookie('isLoggedIn');
+
+    res.clearCookie("accessToken");
+    res.clearCookie("refreshToken");
+    res.clearCookie("isLoggedIn");
 
     res.status(200).json({ success: true, message: "Đăng xuất thành công" });
   } catch (err) {
@@ -186,7 +228,10 @@ exports.forgotPassword = async (req, res) => {
   try {
     const user = await User.findOne({ email: req.body.email });
     if (!user)
-      return res.status(404).json({ success: false, message: "Không tìm thấy tài khoản với email này" });
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy tài khoản với email này",
+      });
 
     const otp = user.createPasswordResetOtp();
     await user.save({ validateBeforeSave: false });
@@ -224,11 +269,13 @@ exports.verifyForgotPasswordOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
     const user = await User.findOne({ email }).select(
-      "+passwordResetOtp +passwordResetOtpExpires +passwordResetOtpAttempts"
+      "+passwordResetOtp +passwordResetOtpExpires +passwordResetOtpAttempts",
     );
 
     if (!user)
-      return res.status(400).json({ success: false, message: "OTP không hợp lệ hoặc đã hết hạn" });
+      return res
+        .status(400)
+        .json({ success: false, message: "OTP không hợp lệ hoặc đã hết hạn" });
 
     if (!user.verifyPasswordResetOtp(otp)) {
       const isExceeded = await handleInvalidOtpAttempt(user);
@@ -255,11 +302,13 @@ exports.resetPasswordWithOtp = async (req, res) => {
   try {
     const { email, otp, password } = req.body;
     const user = await User.findOne({ email }).select(
-      "+passwordResetOtp +passwordResetOtpExpires +passwordResetOtpAttempts +refreshToken"
+      "+passwordResetOtp +passwordResetOtpExpires +passwordResetOtpAttempts +refreshToken",
     );
 
     if (!user)
-      return res.status(400).json({ success: false, message: "OTP không hợp lệ hoặc đã hết hạn" });
+      return res
+        .status(400)
+        .json({ success: false, message: "OTP không hợp lệ hoặc đã hết hạn" });
 
     if (!user.verifyPasswordResetOtp(otp)) {
       const isExceeded = await handleInvalidOtpAttempt(user);
@@ -278,7 +327,10 @@ exports.resetPasswordWithOtp = async (req, res) => {
     user.refreshToken = undefined; // đăng xuất tất cả thiết bị
     await user.save();
 
-    res.status(200).json({ success: true, message: "Đặt lại mật khẩu thành công. Vui lòng đăng nhập lại." });
+    res.status(200).json({
+      success: true,
+      message: "Đặt lại mật khẩu thành công. Vui lòng đăng nhập lại.",
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -292,9 +344,11 @@ exports.changePassword = async (req, res) => {
     const user = await User.findById(req.user._id).select("+password");
 
     if (!(await user.comparePassword(currentPassword)))
-      return res.status(401).json({ success: false, message: "Mật khẩu hiện tại không đúng" });
+      return res
+        .status(401)
+        .json({ success: false, message: "Mật khẩu hiện tại không đúng" });
 
-    user.password     = newPassword;
+    user.password = newPassword;
     user.refreshToken = undefined; // đăng xuất các thiết bị khác
     await user.save();
 
@@ -309,7 +363,10 @@ exports.changePassword = async (req, res) => {
 
 exports.getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).populate("role", "name displayName permissions");
+    const user = await User.findById(req.user._id).populate(
+      "role",
+      "name displayName permissions",
+    );
     res.status(200).json({ success: true, data: { user } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
