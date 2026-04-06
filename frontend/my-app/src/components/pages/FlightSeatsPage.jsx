@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect, useMemo, Fragment } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
@@ -8,17 +8,17 @@ import {
   Clock,
   X,
   Plane,
+  CalendarDays,
+  Hourglass,
+  ShieldCheck,
+  Users
 } from "lucide-react";
-
-/* ────────── helper ────────── */
-const fmt = (n) => n.toLocaleString("vi-VN") + "đ";
-const SEAT_PRICE = 200000; // price per seat
-import { Fragment, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowRight, CalendarDays, Check, Hourglass, MapPin, Plane, ShieldCheck, Users } from "lucide-react";
-import { ROUTES } from "@/constants/routes";
 import api from "@/services/Axiosinstance";
 import toast from "react-hot-toast";
+import { ROUTES } from "@/constants/routes";
+
+/* ────────── helper ────────── */
+const fmt = (n) => new Intl.NumberFormat("vi-VN").format(n) + "đ";
 
 function formatTime(value) {
   if (!value) return "--:--";
@@ -30,11 +30,20 @@ function formatDate(value) {
   return new Date(value).toLocaleDateString("vi-VN");
 }
 
+const LegendDot = ({ className, label }) => (
+  <div className="inline-flex items-center gap-3">
+    <div className={`w-8 h-8 rounded-xl border-2 flex items-center justify-center ${className}`}>
+      <div className="w-2 h-2 rounded-full bg-white opacity-20"></div>
+    </div>
+    <span className="text-sm font-bold text-gray-500 uppercase tracking-tighter">{label}</span>
+  </div>
+);
+
 const FlightSeatsPage = () => {
   const { flightId } = useParams();
   const navigate = useNavigate();
 
-  const [flight, setFlight] = useState(null);
+  const [flightData, setFlightData] = useState(null);
   const [layout, setLayout] = useState([]);
   const [bookedSeats, setBookedSeats] = useState(new Set());
   const [selectedSeats, setSelectedSeats] = useState([]);
@@ -42,37 +51,13 @@ const FlightSeatsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  /* ── fetch flight ── */
+  const ROWS = 10;
+  const COLS = ["A", "B", "C", "D"];
+
+  /* ── fetch data ── */
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { default: api } = await import("../../services/Axiosinstance");
-        const res = await api.get(`/flights/${flightId}`);
-        const dbFlight = res.data.flight || res.data;
-
-        setFlightData({
-          flightNumber: dbFlight.flightNumber,
-          departure: dbFlight.origin?.code || "SGN",
-          departureCity: dbFlight.origin?.city || "Ho Chi Minh City, VN",
-          arrival: dbFlight.destination?.code || "HAN",
-          arrivalCity: dbFlight.destination?.city || "Da Lat, VN",
-          departTime: new Date(dbFlight.departureTime).toLocaleTimeString("en-US", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: true,
-          }),
-          arriveTime: new Date(dbFlight.arrivalTime).toLocaleTimeString("en-US", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: true,
-          }),
-          date: new Date(dbFlight.departureTime).toLocaleDateString("vi-VN"),
-          airline: dbFlight.airline?.name || "Vietnam Airlines",
-          price: dbFlight.fareClasses?.[0]?.basePrice || 200000,
-          raw: dbFlight,
-        });
-      } catch (err) {
-        console.error("Lỗi lấy thông tin chuyến bay:", err);
         setLoading(true);
         setError("");
 
@@ -81,9 +66,28 @@ const FlightSeatsPage = () => {
           api.get(`/flights/${flightId}/seats`),
         ]);
 
-        const flightData = flightRes?.data?.data || flightRes?.data;
+        const dbFlight = flightRes?.data?.data || flightRes?.data?.flight || flightRes?.data;
         const seats = Array.isArray(seatRes?.data?.data) ? seatRes.data.data : [];
 
+        // Map flight data to local structure
+        setFlightData({
+          id: dbFlight._id,
+          flightNumber: dbFlight.flightNumber,
+          departure: dbFlight.origin?.code || "SGN",
+          departureCity: dbFlight.origin?.city || "Ho Chi Minh City, VN",
+          arrival: dbFlight.destination?.code || "HAN",
+          arrivalCity: dbFlight.destination?.city || "Hanoi, VN",
+          departureTime: dbFlight.departureTime,
+          arrivalTime: dbFlight.arrivalTime,
+          departTime: formatTime(dbFlight.departureTime),
+          arriveTime: formatTime(dbFlight.arrivalTime),
+          date: formatDate(dbFlight.departureTime),
+          airline: dbFlight.airline?.name || "Airline",
+          price: Number(dbFlight.fareClasses?.[0]?.basePrice || 900000),
+          raw: dbFlight,
+        });
+
+        // Group seats by row for layout
         const rowsMap = seats.reduce((acc, seat) => {
           const key = Number(seat.row);
           if (!acc[key]) acc[key] = [];
@@ -91,55 +95,50 @@ const FlightSeatsPage = () => {
           return acc;
         }, {});
 
-        const rows = Object.keys(rowsMap)
+        const sortedRows = Object.keys(rowsMap)
           .map(Number)
           .sort((a, b) => a - b)
-          .slice(0, 5)
           .map((row) => {
-            const sorted = rowsMap[row].sort((a, b) => String(a.column).localeCompare(String(b.column)));
-            const visibleCols = ["A", "B", "C", "D"];
-            return visibleCols.map((col) => sorted.find((item) => item.column === col)?.seatNumber || `${row}${col}`);
+            const sortedCols = COLS.map((col) => {
+              const seat = rowsMap[row].find((s) => s.column === col);
+              return seat ? seat.seatNumber : `${row}${col}`;
+            });
+            return sortedCols;
           });
 
+        setLayout(sortedRows.length ? sortedRows : Array.from({ length: ROWS }, (_, i) => COLS.map(c => `${i+1}${c}`)));
+        
         const unavailable = new Set(
-          seats.filter((seat) => seat.status !== "available").map((seat) => seat.seatNumber),
+          seats.filter((seat) => seat.status !== "available").map((seat) => seat.seatNumber)
         );
-
-        setFlight(flightData);
-        setLayout(rows.length ? rows : [["1A", "1B", "1C", "1D"], ["2A", "2B", "2C", "2D"], ["3A", "3B", "3C", "3D"], ["4A", "4B", "4C", "4D"], ["5A", "5B", "5C", "5D"]]);
         setBookedSeats(unavailable);
-      } catch (fetchError) {
-        setError(fetchError.response?.data?.message || "Không tải được sơ đồ ghế chuyến bay");
+
+      } catch (err) {
+        console.error("Error fetching flight/seats:", err);
+        setError(err.response?.data?.message || "Không tải được sơ đồ ghế chuyến bay");
+        toast.error("Không tải được dữ liệu chuyến bay!");
       } finally {
         setLoading(false);
       }
     };
 
-  /* ── seat map config ── */
-  const ROWS = 10;
-  const COLS = ["A", "B", "C", "D"];
-  const occupiedSeats = [
-    "1C", "1D", "2A", "2B", "2C", "2D",
-    "3C", "3D", "4A", "4B", "4C",
-    "5C", "5D", "6A", "6B",
-    "7C", "7D", "8A", "8C",
-    "9B", "9D", "10A", "10C",
-  ];
+    if (flightId) fetchData();
+  }, [flightId]);
 
-  const getSeatStatus = (seatId) => {
-    if (selectedSeats.includes(seatId)) return "selected";
-    if (occupiedSeats.includes(seatId)) return "occupied";
-    return "available";
-  };
-
+  /* ── interaction ── */
   const toggleSeat = (seatId) => {
-    const status = getSeatStatus(seatId);
-    if (status === "occupied") return;
-    if (status === "selected") {
-      setSelectedSeats((prev) => prev.filter((s) => s !== seatId));
-    } else {
-      setSelectedSeats((prev) => [...prev, seatId]);
-    }
+    if (bookedSeats.has(seatId)) return;
+    
+    setSelectedSeats((prev) => {
+      if (prev.includes(seatId)) {
+        return prev.filter((s) => s !== seatId);
+      }
+      if (prev.length >= 4) {
+        toast.error("Không thể chọn quá 4 ghế");
+        return prev;
+      }
+      return [...prev, seatId];
+    });
   };
 
   const removeSeat = (seatId) => {
@@ -148,514 +147,275 @@ const FlightSeatsPage = () => {
 
   const handleContinue = () => {
     if (selectedSeats.length === 0) {
-      alert("Vui lòng chọn ít nhất một ghế");
+      toast.error("Vui lòng chọn ít nhất một ghế");
       return;
     }
-    navigate("/flight-payment", {
-      state: { selectedSeats, flightId, flight: flightData },
-    if (flightId) fetchData();
-  }, [flightId]);
-
-  const statusOfSeat = useMemo(() => {
-    const map = {};
-    layout.flat().forEach((seat) => {
-      if (!seat) return;
-      if (bookedSeats.has(seat)) {
-        map[seat] = "booked";
-      } else if (selectedSeats.includes(seat)) {
-        map[seat] = "selected";
-      } else {
-        map[seat] = "available";
-      }
+    navigate(ROUTES.FLIGHT_PAYMENT || "/flight-payment", {
+      state: { selectedSeats, flightId, flight: flightData.raw },
     });
-    return map;
-  }, [bookedSeats, layout, selectedSeats]);
-
-  const farePrice = Number(flight?.fareClasses?.[0]?.basePrice || 500000);
-  const subtotal = selectedSeats.length * farePrice;
-  const serviceFee = 100000;
-  const total = subtotal + serviceFee;
-
-  /* ── loading ── */
-  if (loading || !flightData) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-10 h-10 border-3 border-primary/20 border-t-primary rounded-full animate-spin mx-auto"></div>
-          <p className="mt-3 text-gray-500 text-sm font-medium">Đang tải thông tin chuyến bay...</p>
-        </div>
-      </div>
-  const toggleSeat = (seatNumber) => {
-    if (bookedSeats.has(seatNumber)) return;
-    setSelectedSeats((current) =>
-      current.includes(seatNumber) ? current.filter((item) => item !== seatNumber) : [...current, seatNumber],
-    );
   };
 
-  const departureCity = flight?.origin?.city || "Ho Chi Minh City, VN";
-  const arrivalCity = flight?.destination?.city || "Da Lat, VN";
-
-  const totalSeats = 4; // max selectable
-  const seatPrice = flightData.price || SEAT_PRICE;
+  const seatPrice = flightData?.price || 0;
   const subtotal = selectedSeats.length * seatPrice;
   const serviceFee = 50000;
   const totalCost = subtotal + serviceFee;
 
   /* ────────── RENDER ────────── */
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-[#159c90]/20 border-t-[#159c90] rounded-full animate-spin mx-auto"></div>
+          <p className="mt-6 text-gray-400 font-black uppercase tracking-widest text-xs">Đang tải sơ đồ ghế...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !flightData) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6">
+        <div className="bg-white p-10 rounded-3xl border border-gray-100 shadow-xl text-center max-w-md">
+          <div className="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-6">
+            <X size={32} className="text-rose-500" />
+          </div>
+          <h2 className="text-2xl font-black text-gray-900 mb-2 uppercase tracking-tight">Opps! Có lỗi xảy ra</h2>
+          <p className="text-gray-500 text-sm mb-8">{error || "Không tìm thấy dữ liệu chuyến bay"}</p>
+          <button 
+            onClick={() => navigate(-1)}
+            className="w-full py-4 bg-[#159c90] text-white rounded-2xl font-bold hover:bg-[#10897f] transition-all uppercase tracking-widest text-sm shadow-lg shadow-[#159c90]/20"
+          >
+            Quay lại tìm kiếm
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-[#f8fafc]">
-      {/* ━━━━ Progress Stepper ━━━━ */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-5xl mx-auto px-4 py-5">
-          {/* Title */}
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-bold text-gray-900 font-heading">
-              Chọn vị trí ngồi
-            </h1>
-            <span className="text-primary font-semibold text-sm">
-              {selectedSeats.length} trong {totalSeats} lựa chọn
-            </span>
+    <div className="min-h-screen bg-[#f8fafc] pb-10">
+      {/* Header Progress */}
+      <div className="bg-white border-b border-gray-100 sticky top-0 z-30 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <div className="flex flex-wrap items-end justify-between gap-6 mb-6">
+            <div>
+              <h1 className="text-[40px] font-black text-gray-900 leading-none tracking-tight">Chọn vị trí ngồi</h1>
+              <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] mt-2">Dự kiến máy bay {flightData.airline}</p>
+            </div>
+            <div className="flex items-center gap-3 bg-[#e0f2f1] px-6 py-2 rounded-full">
+              <Users size={16} className="text-[#159c90]" />
+              <span className="text-[#159c90] font-black text-sm uppercase tracking-tighter">
+                {selectedSeats.length} / 4 Ghế đã chọn
+              </span>
+            </div>
           </div>
-
-          {/* Steps */}
-          <div className="flex items-center justify-center gap-0">
-            {[
-              { step: 1, label: "Chỗ ngồi", active: true },
-              { step: 2, label: "Thông tin", active: false },
-              { step: 3, label: "Thanh toán", active: false },
-            ].map((s, i) => (
-              <div key={s.step} className="flex items-center">
-                <div className="flex flex-col items-center">
-                  <span
-                    className={`text-sm font-semibold ${
-                      s.active ? "text-primary" : "text-gray-400"
-                    }`}
-                  >
-                    {s.label}
-                  </span>
-                  <div
-                    className={`mt-2 w-28 h-1 rounded-full ${
-                      s.active ? "bg-primary" : "bg-gray-200"
-                    }`}
-                  ></div>
-                </div>
-                {i < 2 && <div className="w-8"></div>}
-              </div>
-            ))}
+          
+          <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-full bg-[#159c90] transition-all duration-500" style={{ width: "35%" }}></div>
+          </div>
+          <div className="flex justify-between mt-3 px-1">
+             {["Chọn chỗ", "Thông tin", "Thanh toán", "Hoàn tất"].map((step, idx) => (
+               <span key={step} className={`text-[10px] font-black uppercase tracking-widest ${idx === 0 ? "text-[#159c90]" : "text-gray-300"}`}>{step}</span>
+             ))}
           </div>
         </div>
       </div>
 
-      {/* ━━━━ Main Content ━━━━ */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* ── Seat Map (Left) ── */}
-          <div className="lg:col-span-2">
-            {/* Legend */}
-            <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
-              <div className="flex items-center gap-8 flex-wrap">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl border-2 border-primary/40 bg-primary/5 flex items-center justify-center">
-                    <span className="text-primary text-xs font-bold">1A</span>
-                  </div>
-                  <span className="text-sm text-gray-600 font-medium">Có sẵn</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-                    <span className="text-white text-xs font-bold">1A</span>
-                  </div>
-                  <span className="text-sm text-gray-600 font-medium">Đã chọn</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gray-200 flex items-center justify-center">
-                    <span className="text-gray-400 text-xs font-bold">1A</span>
-                  </div>
-                  <span className="text-sm text-gray-600 font-medium">Đang trống</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Airplane Seat Map */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              {/* Cockpit indicator */}
-              <div className="flex justify-center mb-6">
-                <div className="bg-gray-100 border border-gray-200 rounded-xl px-6 py-2">
-                  <span className="text-sm text-gray-400 font-medium">
-                    Phía trước/ Buồng lái
-                  </span>
-                </div>
-              </div>
-
-              {/* Column Headers */}
-              <div className="flex justify-center mb-4">
-                <div className="w-14 mr-2"></div> {/* spacer for row label */}
-                <div className="flex gap-3">
-                  {COLS.map((col) => (
-                    <div
-                      key={col}
-                      className="w-16 h-8 flex items-center justify-center text-sm font-bold text-gray-600"
-                    >
-                      {col}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Seat Rows */}
-              <div className="flex flex-col items-center gap-3">
-                {Array.from({ length: ROWS }).map((_, rowIdx) => {
-                  const rowNum = rowIdx + 1;
-                  // Add a divider after row 2 and row 5 (like in the Figma design)
-                  const showDivider = rowNum === 3 || rowNum === 6;
-
-                  return (
-                    <div key={rowNum}>
-                      {showDivider && (
-                        <div className="w-full border-t border-dashed border-primary/30 my-3"></div>
-                      )}
-                      <div className="flex items-center gap-0">
-                        {/* Row Number */}
-                        <div className="w-14 mr-2 flex items-center justify-center">
-                          <span className="text-sm font-bold text-gray-500 italic">
-                            {rowNum}
-                          </span>
-                        </div>
-
-                        {/* Seats */}
-                        <div className="flex gap-3">
-                          {COLS.map((col) => {
-                            const seatId = `${rowNum}${col}`;
-                            const status = getSeatStatus(seatId);
-
-                            return (
-                              <button
-                                key={seatId}
-                                onClick={() => toggleSeat(seatId)}
-                                disabled={status === "occupied"}
-                                className={`w-16 h-12 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center ${
-                                  status === "available"
-                                    ? "bg-primary/8 border-2 border-primary/30 text-primary hover:bg-primary/15 cursor-pointer"
-                                    : status === "selected"
-                                    ? "bg-primary text-white shadow-md cursor-pointer hover:bg-secondary"
-                                    : "bg-gray-200 text-gray-400 cursor-not-allowed"
-                                }`}
-                                title={
-                                  status === "occupied"
-                                    ? "Ghế đã được đặt"
-                                    : `Ghế ${seatId}`
-                                }
-                              >
-                                {seatId}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* ── Sidebar (Right) ── */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl border border-gray-200 p-5 sticky top-20">
-              <h3 className="text-lg font-bold text-primary mb-5 font-heading">
-                Lựa chọn của bạn
-              </h3>
-
-              {/* Flight Info */}
-              <div className="space-y-4 mb-5">
-                <div className="flex items-start gap-3">
-                  <div className="mt-1">
-                    <div className="w-3 h-3 rounded-full bg-primary"></div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-gray-400 font-medium">Từ</div>
-                    <div className="text-base font-bold text-gray-900">
-                      {flightData.departureCity}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <div className="mt-1">
-                    <MapPin size={14} className="text-red-500" />
-                  </div>
-                  <div>
-                    <div className="text-xs text-gray-400 font-medium">Tới</div>
-                    <div className="text-base font-bold text-gray-900">
-                      {flightData.arrivalCity}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Date & Time */}
-              <div className="flex items-center gap-4 py-4 border-y border-gray-100">
-                <div className="flex items-center gap-2">
-                  <Calendar size={16} className="text-primary" />
-                  <span className="text-sm font-semibold text-gray-700">
-                    {flightData.date}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock size={16} className="text-primary" />
-                  <span className="text-sm font-semibold text-gray-700">
-                    {flightData.departTime} Sáng
-                  </span>
-                </div>
-              </div>
-
-              {/* Selected Seats */}
-              <div className="py-4 border-b border-gray-100">
-                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
-                  SEATS
-                </h4>
-                {selectedSeats.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {selectedSeats.sort().map((seat) => (
-                      <div
-                        key={seat}
-                        className="flex items-center gap-1.5 bg-primary/10 text-primary border border-primary/30 rounded-full px-3 py-1.5 text-sm font-semibold"
-                      >
-                        {seat}
-                        <button
-                          onClick={() => removeSeat(seat)}
-                          className="hover:text-red-500 transition-colors"
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-400 italic">Chưa chọn ghế nào</p>
-                )}
-              </div>
-
-              {/* Pricing */}
-              <div className="py-4 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500">
-                    Tổng phụ ({selectedSeats.length} chỗ ngồi)
-                  </span>
-                  <span className="text-sm font-semibold text-gray-700">
-                    {fmt(subtotal)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500">Phí dịch vụ</span>
-                  <span className="text-sm font-semibold text-gray-700">
-                    {fmt(serviceFee)}
-                  </span>
-                </div>
-                <div className="border-t border-dashed border-primary/30 pt-3 mt-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-base font-bold text-primary">
-                      Tổng chi phí
-                    </span>
-                    <span className="text-xl font-bold text-primary">
-                      {fmt(totalCost)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="space-y-3 mt-4">
-                <button
-                  onClick={handleContinue}
-                  disabled={selectedSeats.length === 0}
-                  className={`w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl font-semibold text-sm transition-all ${
-                    selectedSeats.length === 0
-                      ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                      : "bg-primary text-white hover:bg-secondary shadow-lg shadow-primary/25"
-                  }`}
-                >
-                  Tiến hành thanh toán
-                  <ArrowRight size={16} />
-                </button>
-
-                <button
-                  onClick={() => navigate(-1)}
-                  className="w-full flex items-center justify-center gap-2 py-3 px-6 rounded-xl font-semibold text-sm border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
-                >
-                  <ArrowLeft size={16} />
-                  Quay lại
-                </button>
-              </div>
-
-              {/* Split payment hint */}
-              <div className="mt-4 text-center">
-                <p className="text-xs text-gray-400">
-                  Chia nhỏ theo nhóm — Chỉ cần thanh toán phần của bạn ngay
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    <div className="min-h-screen bg-[#efefef] pb-10 font-sans text-slate-900 antialiased">
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <section className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
+          {/* Seat Map */}
           <div className="space-y-6">
-            <div className="rounded-[24px] border border-[#77cdbf] bg-white px-6 py-5">
-              <div className="mb-3 flex items-end justify-between">
-                <h1 className="text-[42px] font-extrabold tracking-tight">Chọn vị trí ngồi</h1>
-                <span className="text-base font-bold text-[#37a996]">{selectedSeats.length} trong 4 lựa chọn</span>
-              </div>
-              <div className="mb-3 h-2 w-full rounded-full bg-[#dbe8e7]">
-                <div className="h-2 rounded-full bg-[#4fbba0]" style={{ width: "35%" }} />
-              </div>
-              <div className="grid grid-cols-4 text-center text-sm font-semibold text-[#4fbba0]">
-                <span>Chọn</span>
-                <span>Chỗ ngồi</span>
-                <span>Thông tin</span>
-                <span>Thanh toán</span>
-              </div>
+            {/* Status Legend */}
+            <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex flex-wrap gap-10">
+              <LegendDot className="border-[#159c90]/20 bg-[#e0f2f1] text-[#159c90]" label="Có sẵn" />
+              <LegendDot className="border-[#159c90] bg-[#159c90]" label="Đã chọn" />
+              <LegendDot className="border-gray-200 bg-gray-100" label="Đã đặt" />
             </div>
 
-            <div className="rounded-[20px] border border-[#77cdbf] bg-white px-6 py-4">
-              <div className="flex flex-wrap gap-8 text-[15px] font-semibold">
-                <LegendDot className="border-[#56c0ac] bg-[#d9ebe8]" label="Có sẵn" />
-                <LegendDot className="border-[#56c0ac] bg-[#4fbba0]" label="Đã chọn" />
-                <LegendDot className="border-[#cfd4d8] bg-[#dedede]" label="Đang trống" />
-              </div>
+            <div className="bg-white p-10 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden">
+               {/* Airplane Nose Decoration */}
+               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-32 bg-gray-50 rounded-b-[300px] border-b border-gray-100 -z-0 opacity-50"></div>
+               
+               <div className="relative z-10 max-w-md mx-auto">
+                 <div className="text-center mb-10">
+                   <div className="inline-block px-8 py-2 bg-gray-100 rounded-full text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                     Phía trước / Buồng lái
+                   </div>
+                 </div>
+
+                 {/* Seat Grid */}
+                 <div className="space-y-4">
+                   <div className="grid grid-cols-[50px_repeat(4,1fr)] gap-4 text-center">
+                     <span className="text-[10px] font-black text-gray-300 uppercase self-center">Hàng</span>
+                     {COLS.map(c => <span key={c} className="text-[14px] font-black text-gray-900 uppercase">{c}</span>)}
+                   </div>
+
+                   {layout.map((row, rIdx) => (
+                     <div key={rIdx} className="grid grid-cols-[50px_repeat(4,1fr)] gap-4">
+                       <div className="flex items-center justify-center">
+                         <span className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-50 text-xs font-black text-gray-400 italic">
+                           {rIdx + 1}
+                         </span>
+                       </div>
+                       
+                       {row.map((seatId) => {
+                         const isOccupied = bookedSeats.has(seatId);
+                         const isSelected = selectedSeats.includes(seatId);
+                         
+                         return (
+                           <button
+                             key={seatId}
+                             onClick={() => toggleSeat(seatId)}
+                             disabled={isOccupied}
+                             className={`h-16 rounded-2xl border-2 font-black text-base transition-all duration-200 ${
+                               isSelected
+                               ? "border-[#159c90] bg-[#159c90] text-white shadow-lg shadow-[#159c90]/20 scale-105"
+                               : isOccupied
+                               ? "border-gray-100 bg-gray-50 text-gray-200 cursor-not-allowed"
+                               : "border-[#159c90]/10 bg-[#e0f2f1]/30 text-[#159c90] hover:bg-[#e0f2f1] hover:border-[#159c90]/30"
+                             }`}
+                           >
+                             {seatId}
+                           </button>
+                         );
+                       })}
+                     </div>
+                   ))}
+                 </div>
+
+                 <div className="mt-16 text-center">
+                   <div className="inline-block px-8 py-2 bg-gray-100 rounded-full text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                     Phía sau máy bay
+                   </div>
+                 </div>
+               </div>
             </div>
-
-            {loading ? (
-              <div className="rounded-[24px] border border-[#77cdbf] bg-white p-6 text-center text-slate-500">Đang tải sơ đồ ghế...</div>
-            ) : error ? (
-              <div className="rounded-[24px] border border-rose-300 bg-rose-50 p-6 text-center font-semibold text-rose-700">{error}</div>
-            ) : (
-              <div className="rounded-[24px] border border-[#77cdbf] bg-white p-6">
-                <div className="mx-auto max-w-[640px]">
-                  <div className="mb-4 text-center text-sm font-bold text-slate-400">Phía trước/ Buồng lái</div>
-
-                  <div className="grid grid-cols-[54px_repeat(4,minmax(0,1fr))] gap-3 text-center text-sm font-black text-slate-700">
-                    <span className="self-end">Row</span>
-                    {["A", "B", "C", "D"].map((col) => (
-                      <span key={col}>{col}</span>
-                    ))}
-
-                    {layout.map((row, rowIndex) => (
-                      <Fragment key={`row-${rowIndex}`}>
-                        <span key={`row-${rowIndex}`} className="flex items-center justify-center text-base font-bold text-slate-700">
-                          {rowIndex + 1}
-                        </span>
-                        {row.map((seat) => {
-                          const status = statusOfSeat[seat];
-                          return (
-                            <button
-                              key={seat}
-                              type="button"
-                              onClick={() => toggleSeat(seat)}
-                              disabled={status === "booked"}
-                              className={`h-14 rounded-[16px] border text-base font-bold transition ${
-                                status === "selected"
-                                  ? "border-[#56c0ac] bg-[#4fbba0] text-white"
-                                  : status === "booked"
-                                    ? "cursor-not-allowed border-[#cfd4d8] bg-[#dedede] text-slate-400"
-                                    : "border-[#8fd1c8] bg-[#d9ebe8] text-[#14998e] hover:bg-[#d2e5e1]"
-                              }`}
-                            >
-                              {seat}
-                            </button>
-                          );
-                        })}
-                      </Fragment>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
-          <aside className="space-y-4 lg:sticky lg:top-6">
-            <div className="overflow-hidden rounded-[24px] border border-[#77cdbf] bg-white shadow-[0_10px_26px_rgba(15,23,42,0.09)]">
-              <div className="border-b border-[#77cdbf] px-4 py-4 text-xl font-black text-[#3fb79d]">Lựa chọn của bạn</div>
+          {/* Sidebar Info */}
+          <aside className="space-y-6">
+            <div className="bg-white rounded-[32px] border border-gray-100 shadow-xl overflow-hidden sticky top-32">
+              <div className="bg-[#159c90] p-6 text-white">
+                <h3 className="text-xl font-black uppercase tracking-tight">Chi tiết đặt chỗ</h3>
+                <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest mt-1">Mã chuyến: {flightData.flightNumber}</p>
+              </div>
 
-              <div className="space-y-5 p-4">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-slate-400"><span className="h-3 w-3 rounded-full bg-[#4fbba0]" />Từ</div>
-                  <p className="text-2xl font-bold">{departureCity}</p>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-slate-400"><MapPin size={14} className="text-rose-500" />Tới</div>
-                  <p className="text-2xl font-bold">{arrivalCity}</p>
+              <div className="p-6 space-y-6">
+                {/* Route */}
+                <div className="space-y-4">
+                  <div className="flex items-start gap-4">
+                    <div className="mt-1 w-2 h-2 rounded-full bg-[#159c90] shadow-[0_0_0_4px_rgba(21,156,144,0.1)]"></div>
+                    <div>
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">Điểm khởi hành</p>
+                      <h4 className="text-lg font-black text-gray-900 leading-tight">{flightData.departureCity}</h4>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4">
+                    <MapPin className="text-rose-500" size={18} />
+                    <div>
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">Điểm đến</p>
+                      <h4 className="text-lg font-black text-gray-900 leading-tight">{flightData.arrivalCity}</h4>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 rounded-2xl border border-[#77cdbf] p-3">
-                  <div className="flex items-center gap-2 rounded-xl bg-[#f4fbf8] px-3 py-2 text-sm font-semibold"><CalendarDays size={16} className="text-[#4fbba0]" />{formatDate(flight?.departureTime)}</div>
-                  <div className="flex items-center gap-2 rounded-xl bg-[#f4fbf8] px-3 py-2 text-sm font-semibold"><Hourglass size={16} className="text-[#4fbba0]" />{formatTime(flight?.departureTime)}</div>
+                {/* Time & Date */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-gray-50 rounded-2xl p-3 border border-gray-100">
+                    <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">
+                      <CalendarDays size={12} className="text-[#159c90]" /> Ngày đi
+                    </div>
+                    <div className="font-black text-gray-900">{flightData.date}</div>
+                  </div>
+                  <div className="bg-gray-50 rounded-2xl p-3 border border-gray-100">
+                    <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">
+                      <Hourglass size={12} className="text-[#159c90]" /> Giờ bay
+                    </div>
+                    <div className="font-black text-gray-900">{flightData.departTime}</div>
+                  </div>
                 </div>
 
+                {/* Selected Seats List */}
                 <div>
-                  <p className="mb-2 text-sm font-bold text-slate-400">SEATS</p>
+                  <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Ghế đã chọn</div>
                   <div className="flex flex-wrap gap-2">
-                    {selectedSeats.length ? (
+                    {selectedSeats.length > 0 ? (
                       selectedSeats.map((seat) => (
-                        <span key={seat} className="inline-flex items-center gap-1 rounded-full border border-[#77cdbf] bg-[#e7f6f2] px-3 py-1 text-xs font-black text-[#14998e]">
-                          {seat}
-                          <button type="button" onClick={() => toggleSeat(seat)}>x</button>
-                        </span>
+                        <div key={seat} className="group relative">
+                          <div className="px-5 py-2 bg-[#e0f2f1] text-[#159c90] border-2 border-[#159c90]/20 rounded-2xl font-black text-sm flex items-center gap-3">
+                            {seat}
+                            <button onClick={() => removeSeat(seat)} className="text-[#159c90]/40 hover:text-rose-500 transition-colors">
+                              <X size={14} />
+                            </button>
+                          </div>
+                        </div>
                       ))
                     ) : (
-                      <span className="text-sm text-slate-400">Chưa chọn ghế</span>
+                      <p className="text-xs font-bold text-gray-300 italic py-2">Bạn chưa chọn vị trí nào...</p>
                     )}
                   </div>
                 </div>
 
-                <div className="space-y-2 border-t border-dashed border-slate-300 pt-3">
-                  <div className="flex items-center justify-between text-sm text-slate-500"><span>Tổng phụ ({selectedSeats.length} chỗ ngồi)</span><span className="font-black text-slate-900">{new Intl.NumberFormat("vi-VN").format(subtotal)} VND</span></div>
-                  <div className="flex items-center justify-between text-sm text-slate-500"><span>Phí dịch vụ</span><span className="font-black text-slate-900">{new Intl.NumberFormat("vi-VN").format(serviceFee)}VND</span></div>
-                  <div className="flex items-center justify-between pt-1 text-[30px] font-extrabold text-[#4fbba0]"><span>Tổng chi phí</span><span>{new Intl.NumberFormat("vi-VN").format(total)}VND</span></div>
-                </div>
-
-                <div className="flex items-center justify-between rounded-2xl border border-[#77cdbf] px-4 py-3">
+                {/* Payment Split Toggle */}
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
                   <div>
-                    <p className="text-sm font-black text-slate-900">Chia nhỏ theo nhóm</p>
-                    <p className="text-xs text-slate-400">Chỉ cần thanh toán phần của bạn ngay</p>
+                    <p className="text-xs font-black text-gray-900 uppercase">Chia sẻ thanh toán</p>
+                    <p className="text-[10px] font-bold text-gray-400">Thanh toán theo nhóm - {isGroupPayment ? "Bật" : "Tắt"}</p>
                   </div>
-                  <button type="button" onClick={() => setIsGroupPayment((value) => !value)} className={`relative h-7 w-12 rounded-full transition ${isGroupPayment ? "bg-[#4fbba0]" : "bg-slate-300"}`}>
-                    <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition ${isGroupPayment ? "left-6" : "left-1"}`} />
+                  <button 
+                    onClick={() => setIsGroupPayment(!isGroupPayment)}
+                    className={`w-12 h-6 rounded-full transition-all relative ${isGroupPayment ? "bg-[#159c90]" : "bg-gray-200"}`}
+                  >
+                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${isGroupPayment ? "left-7" : "left-1"}`}></div>
                   </button>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!selectedSeats.length) {
-                      toast.error("Vui lòng chọn ít nhất 1 ghế");
-                      return;
-                    }
-                    navigate(ROUTES.FLIGHT_PAYMENT, { state: { selectedSeats, flightId, flight } });
-                  }}
-                  className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#159c90] text-lg font-bold text-white transition hover:bg-[#10897f]"
-                >
-                  Tiến hành thanh toán
-                  <ArrowRight size={20} />
-                </button>
+                {/* Pricing Summary */}
+                <div className="space-y-3 pt-4 border-t border-dashed border-gray-200">
+                   <div className="flex justify-between text-sm">
+                     <span className="font-bold text-gray-400">Tạm tính ({selectedSeats.length} ghế)</span>
+                     <span className="font-black text-gray-900">{fmt(subtotal)}</span>
+                   </div>
+                   <div className="flex justify-between text-sm">
+                     <span className="font-bold text-gray-400">Phí dịch vụ</span>
+                     <span className="font-black text-gray-900">{fmt(serviceFee)}</span>
+                   </div>
+                   <div className="flex justify-between items-end pt-2">
+                     <span className="font-black text-[#159c90] uppercase text-xs tracking-widest">Tổng cộng</span>
+                     <span className="text-3xl font-black text-[#159c90] leading-none">{fmt(totalCost)}</span>
+                   </div>
+                </div>
 
-                <Link to={ROUTES.FLIGHT_SEARCH} className="block text-center text-sm font-bold text-slate-400 hover:text-slate-700">Quay lại</Link>
+                {/* Action Buttons */}
+                <div className="space-y-3 pt-4 text-center">
+                  <button
+                    onClick={handleContinue}
+                    disabled={selectedSeats.length === 0}
+                    className="w-full h-16 bg-[#159c90] text-white rounded-3xl font-black uppercase tracking-widest text-sm hover:bg-[#10897f] disabled:opacity-30 disabled:cursor-not-allowed shadow-xl shadow-[#159c90]/20 transition-all flex items-center justify-center gap-3"
+                  >
+                    Tiếp tục thanh toán
+                    <ArrowRight size={20} />
+                  </button>
+                  <Link to={ROUTES.FLIGHT_SEARCH} className="inline-block text-xs font-black text-gray-300 uppercase tracking-widest hover:text-gray-500 transition-colors">
+                    ← Quay lại tìm kiếm
+                  </Link>
+                </div>
+              </div>
+            </div>
+            
+            {/* Trust badge */}
+            <div className="flex items-center gap-3 px-6 py-4 bg-white rounded-3xl border border-gray-100 shadow-sm">
+              <ShieldCheck className="text-[#159c90]" size={24} />
+              <div>
+                <p className="text-[10px] font-black text-gray-900 uppercase">Thanh toán an toàn</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase">Bảo mật thông tin 100%</p>
               </div>
             </div>
           </aside>
-        </section>
+        </div>
       </main>
     </div>
   );
 };
-
-function LegendDot({ className, label }) {
-  return (
-    <div className="inline-flex items-center gap-2">
-      <span className={`h-8 w-8 rounded-full border ${className}`} />
-      <span>{label}</span>
-    </div>
-  );
-}
 
 export default FlightSeatsPage;
