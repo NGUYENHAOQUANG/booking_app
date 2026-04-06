@@ -55,7 +55,7 @@ const useAuthStore = create((set) => ({
     // 2. Gọi logout backend (Nếu 401 thì axios interceptor đã chặn loop)
     try { 
       await authService.logout(); 
-    } catch (e) { 
+    } catch { 
       console.warn("Backend logout failed or session already dead"); 
     }
   },

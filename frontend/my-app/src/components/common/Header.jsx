@@ -23,9 +23,13 @@ const Header = ({ onOpenPasswordModal }) => {
   }, []);
 
   useEffect(() => {
-    setIsMenuOpen(false);
-    setIsLanguageOpen(false);
-    setIsQuickSearchOpen(false);
+    const closeMenusTimer = window.setTimeout(() => {
+      setIsMenuOpen(false);
+      setIsLanguageOpen(false);
+      setIsQuickSearchOpen(false);
+    }, 0);
+
+    return () => window.clearTimeout(closeMenusTimer);
   }, [location.pathname]);
 
   useEffect(() => {

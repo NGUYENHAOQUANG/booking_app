@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, Fragment } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft,
@@ -39,6 +39,8 @@ const LegendDot = ({ className, label }) => (
   </div>
 );
 
+const COLS = ["A", "B", "C", "D"];
+
 const FlightSeatsPage = () => {
   const { flightId } = useParams();
   const navigate = useNavigate();
@@ -52,7 +54,6 @@ const FlightSeatsPage = () => {
   const [error, setError] = useState("");
 
   const ROWS = 10;
-  const COLS = ["A", "B", "C", "D"];
 
   /* ── fetch data ── */
   useEffect(() => {
