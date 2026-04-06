@@ -1,194 +1,183 @@
-import { ArrowRight, XCircle, Mail } from "lucide-react";
+import { X, ArrowRight } from "lucide-react";
+import { useLocation } from "react-router-dom";
+
+function formatDate(value) {
+  if (!value) return "--/--/----";
+  return new Date(value).toLocaleDateString("vi-VN");
+}
+
+function formatTime(value) {
+  if (!value) return "--:--";
+  return new Date(value).toLocaleTimeString("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 const BookingFailurePage = () => {
+  const location = useLocation();
+  const booking = location.state?.booking;
+  const busBooking = location.state?.busBooking;
+  const activeBooking = busBooking || booking;
+  const busTrip = location.state?.busTrip || {};
+  const flightInfo = location.state?.flightInfo || {};
+  const customer = location.state?.customer || {};
+  const selectedSeats = location.state?.selectedSeats || [];
+  const outboundFlight = booking?.outboundFlight?.flight || {};
+  const passengerSeats = booking?.passengers?.map((item) => item.seatOutbound).filter(Boolean) || [];
+  const displaySeats = selectedSeats.length ? selectedSeats : passengerSeats;
+
+  const flightServiceName = [
+    outboundFlight?.airline?.name,
+    outboundFlight?.flightNumber,
+  ]
+    .filter(Boolean)
+    .join(" - ");
+
+  const fallbackServiceName = [
+    flightInfo?.airline?.name,
+    flightInfo?.flightNumber,
+  ]
+    .filter(Boolean)
+    .join(" - ");
+
+  const durationMinutes = outboundFlight?.duration || flightInfo?.duration;
+  const formattedDuration = durationMinutes
+    ? `${Math.floor(durationMinutes / 60)}h${String(durationMinutes % 60).padStart(2, "0")}m`
+    : "--";
+
   const ticket = {
-    code: "SGDL001",
-    date: "30/1/2026",
-    customerName: "Nguyễn Văn A",
-    phone: "0987625321",
-    email: "customer23@gmail.com",
-    service: "Xe Phương Trang",
-    seat: "Giường nằm - Giường nằm 41 chỗ ngồi",
-    departTime: "22:36",
-    departPlace: "Văn phòng quận 1",
-    arriveTime: "5:30",
-    arrivePlace: "VP Đà Lạt - Bùi Thị Xuân",
-    duration: "5 giờ 6 phút",
+    code: activeBooking?.bookingCode || "PENDING",
+    date: formatDate(activeBooking?.createdAt || Date.now()),
+    customerName: customer.customerName || activeBooking?.contactInfo?.fullName || "--",
+    phone: customer.phone || activeBooking?.contactInfo?.phone || "--",
+    email: customer.email || activeBooking?.contactInfo?.email || "--",
+    service: busTrip.service || busBooking?.trip?.provider || flightServiceName || fallbackServiceName || "VivaVivu",
+    seat: displaySeats.length ? displaySeats.join(", ") : "--",
+    departTime: busTrip.departureTime || formatTime(outboundFlight?.departureTime || flightInfo?.departureTime),
+    departPlace:
+      busTrip.departurePoint ||
+      outboundFlight?.origin?.name ||
+      flightInfo?.origin?.name ||
+      flightInfo?.origin?.city ||
+      "--",
+    arriveTime: busTrip.arrivalTime || formatTime(outboundFlight?.arrivalTime || flightInfo?.arrivalTime),
+    arrivePlace:
+      busTrip.arrivalPoint ||
+      outboundFlight?.destination?.name ||
+      flightInfo?.destination?.name ||
+      flightInfo?.destination?.city ||
+      "--",
+    duration: busTrip.duration || formattedDuration,
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 py-10">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-        <section className="rounded-4xl border border-rose-200 bg-white shadow-lg overflow-hidden">
-          <div className="bg-rose-600 px-8 py-6 text-center sm:px-14 sm:py-8">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold uppercase tracking-[0.24em] text-white">
-              <XCircle size={16} /> Thanh toán thất bại
-            </div>
-            <h1 className="mt-8 text-4xl font-black tracking-tight text-white sm:text-5xl">
-              THÔNG TIN VÉ
-            </h1>
+    <div className="min-h-screen bg-slate-50 flex justify-center py-12">
+      <div className="w-full max-w-4xl px-4 sm:px-6 flex flex-col items-center">
+        {/* Failure header */}
+        <div className="flex flex-col items-center text-center space-y-3 mb-8 w-full">
+          <span className="bg-[#ef4444] text-white text-[9px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-full">
+            Thất bại
+          </span>
+          <div className="w-12 h-12 bg-[#ef4444] rounded-full flex items-center justify-center">
+            <X size={28} className="text-white" strokeWidth={3} />
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 uppercase flex items-center justify-center pt-2">
+            THANH TOÁN THẤT BẠI
+          </h1>
+        </div>
+
+        {/* Ticket Information Container */}
+        <div className="w-full max-w-3xl border border-[#ef4444] rounded-[2rem] p-8 sm:p-10 bg-white mb-20">
+          <h2 className="text-4xl font-extrabold text-center mb-10 text-slate-900">
+            Thông tin vé
+          </h2>
+
+          <div className="flex justify-between items-center text-[13px] font-medium mb-6 text-slate-800 tracking-wide">
+            <span>Mã vé: {ticket.code}</span>
+            <span>Ngày đặt vé: {ticket.date}</span>
           </div>
 
-          <div className="px-6 pb-10 pt-8 sm:px-12">
-            <div className="mx-auto max-w-4xl rounded-4xl border border-rose-200 bg-slate-50 p-8 shadow-sm sm:p-12">
-              <div className="flex flex-col gap-2 items-center justify-center text-center">
-                <span className="inline-flex items-center gap-2 rounded-full bg-rose-100 px-4 py-2 text-sm font-semibold uppercase tracking-[0.24em] text-rose-700">
-                  <XCircle size={18} /> THẤT BẠI
-                </span>
-                <p className="text-slate-500 text-sm">
-                  Xin lỗi, giao dịch chưa hoàn tất. Vui lòng thử lại hoặc chọn
-                  phương thức thanh toán khác.
+          <h3 className="font-bold text-[14px] mb-2 text-slate-900 tracking-wide">
+            Thông tin khách hàng
+          </h3>
+          <hr className="border-slate-800 mb-6" />
+
+          <div className="space-y-4 mb-10 text-[13px]">
+            <div className="grid grid-cols-[140px_1fr] sm:grid-cols-[180px_1fr] gap-4">
+              <span className="text-slate-800 font-medium tracking-wide">
+                Tên khách hàng:
+              </span>
+              <span className="font-bold text-slate-900 tracking-wide">
+                {ticket.customerName}
+              </span>
+            </div>
+            <div className="grid grid-cols-[140px_1fr] sm:grid-cols-[180px_1fr] gap-4">
+              <span className="text-slate-800 font-medium tracking-wide">
+                Số điện thoại:
+              </span>
+              <span className="font-bold text-slate-900 tracking-wide">
+                {ticket.phone}
+              </span>
+            </div>
+            <div className="grid grid-cols-[140px_1fr] sm:grid-cols-[180px_1fr] gap-4">
+              <span className="text-slate-800 font-medium tracking-wide">
+                Email:
+              </span>
+              <span className="font-bold text-slate-900 tracking-wide">
+                {ticket.email}
+              </span>
+            </div>
+          </div>
+
+          <h3 className="font-bold text-[14px] mb-2 text-slate-900 tracking-wide">
+            Vé
+          </h3>
+          <hr className="border-slate-800 mb-6" />
+
+          <div className="border border-[#ef4444] rounded-2xl p-6 shadow-sm bg-white">
+            <h4 className="font-bold text-slate-900 text-[14px]">
+              {ticket.service}
+            </h4>
+            <p className="text-[11px] font-medium text-slate-600 mb-5">
+              {ticket.seat}
+            </p>
+
+            <div className="flex flex-col sm:flex-row sm:items-center gap-6 sm:gap-8">
+              <div className="w-full sm:w-[130px]">
+                <p className="font-black text-sm text-slate-900 mb-1">
+                  {ticket.departTime}
+                </p>
+                <p className="text-[11px] text-slate-600 font-medium leading-tight">
+                  {ticket.departPlace}
                 </p>
               </div>
 
-              <div className="mt-10 space-y-8">
-                <div className="grid gap-6 sm:grid-cols-2">
-                  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                    <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
-                      Mã vé
-                    </p>
-                    <p className="mt-3 text-lg font-semibold text-slate-900">
-                      {ticket.code}
-                    </p>
-                  </div>
-                  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                    <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
-                      Ngày đặt vé
-                    </p>
-                    <p className="mt-3 text-lg font-semibold text-slate-900">
-                      {ticket.date}
-                    </p>
-                  </div>
-                </div>
+              <div className="hidden sm:flex flex-shrink-0 items-center justify-center">
+                <ArrowRight
+                  size={20}
+                  className="text-slate-700 font-light"
+                  strokeWidth={1}
+                />
+              </div>
 
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-                    Thông tin khách hàng
-                  </p>
-                  <div className="mt-6 space-y-4 text-slate-700">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
-                      <span className="font-medium">Tên khách hàng:</span>
-                      <span className="font-semibold text-slate-900">
-                        {ticket.customerName}
-                      </span>
-                    </div>
-                    <div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
-                      <span className="font-medium">Số điện thoại:</span>
-                      <span className="font-semibold text-slate-900">
-                        {ticket.phone}
-                      </span>
-                    </div>
-                    <div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
-                      <span className="font-medium">Email:</span>
-                      <span className="font-semibold text-slate-900">
-                        {ticket.email}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+              <div className="w-full sm:w-[150px]">
+                <p className="font-black text-sm text-slate-900 mb-1">
+                  {ticket.arriveTime}
+                </p>
+                <p className="text-[11px] text-slate-600 font-medium leading-tight">
+                  {ticket.arrivePlace}
+                </p>
+              </div>
 
-                <div className="rounded-4xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <div className="rounded-[1.75rem] border border-rose-100 bg-rose-50 p-6 text-slate-900">
-                    <div className="space-y-2">
-                      <p className="text-sm font-semibold uppercase tracking-[0.22em] text-rose-700">
-                        {ticket.service}
-                      </p>
-                      <p className="text-base text-slate-700">{ticket.seat}</p>
-                    </div>
+              <div className="w-full h-px sm:h-10 sm:w-px bg-slate-400 mt-2 sm:mt-0 flex-shrink-0"></div>
 
-                    <div className="mt-8 grid gap-6 sm:grid-cols-2">
-                      <div>
-                        <p className="text-xs uppercase tracking-[0.22em] text-slate-400">
-                          Khởi hành
-                        </p>
-                        <p className="mt-3 text-2xl font-black text-slate-900">
-                          {ticket.departTime}
-                        </p>
-                        <p className="mt-2 text-sm text-slate-500">
-                          {ticket.departPlace}
-                        </p>
-                      </div>
-                      <div className="border-t border-slate-200 pt-4 sm:border-t-0 sm:border-l sm:pl-6 sm:pt-0">
-                        <p className="text-xs uppercase tracking-[0.22em] text-slate-400">
-                          Đến nơi
-                        </p>
-                        <p className="mt-3 text-2xl font-black text-slate-900">
-                          {ticket.arriveTime}
-                        </p>
-                        <p className="mt-2 text-sm text-slate-500">
-                          {ticket.arrivePlace}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-6 text-sm text-slate-600">
-                      <span className="font-semibold text-slate-900">
-                        {ticket.duration}
-                      </span>
-                      <span className="inline-flex items-center gap-2">
-                        Lỗi thanh toán <ArrowRight size={16} />
-                      </span>
-                    </div>
-                  </div>
-                </div>
+              <div className="text-[13px] font-bold text-slate-900 tracking-wide truncate">
+                {ticket.duration}
               </div>
             </div>
           </div>
-        </section>
-
-        <footer className="grid gap-6 md:grid-cols-4">
-          <div className="space-y-3">
-            <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500">
-              VivaVivu
-            </h3>
-            <p className="text-sm text-slate-500">
-              Chúng tôi cam kết cung cấp trải nghiệm đặt vé nhanh chóng và an
-              toàn.
-            </p>
-          </div>
-
-          <div className="space-y-3">
-            <h4 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500">
-              Công ty
-            </h4>
-            <ul className="space-y-2 text-sm text-slate-600">
-              <li>Về chúng tôi</li>
-              <li>Tuyển dụng</li>
-              <li>Thông báo</li>
-            </ul>
-          </div>
-
-          <div className="space-y-3">
-            <h4 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500">
-              Support
-            </h4>
-            <ul className="space-y-2 text-sm text-slate-600">
-              <li>Trung tâm hỗ trợ</li>
-              <li>Thông tin an toàn</li>
-              <li>Chính sách</li>
-            </ul>
-          </div>
-
-          <div className="space-y-4">
-            <h4 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500">
-              Bản tin
-            </h4>
-            <p className="text-sm text-slate-500">
-              Đăng ký để nhận ưu đãi độc quyền và thông tin cập nhật.
-            </p>
-            <div className="flex items-center gap-3 rounded-3xl border border-slate-200 bg-white p-3">
-              <Mail size={16} className="text-slate-400" />
-              <input
-                type="email"
-                placeholder="Tài khoản email của bạn"
-                className="w-full bg-transparent text-sm text-slate-700 outline-none"
-              />
-            </div>
-            <button className="w-full rounded-full bg-rose-600 px-6 py-3 text-sm font-bold text-white hover:bg-rose-700 transition">
-              Đăng ký
-            </button>
-          </div>
-        </footer>
+        </div>
       </div>
     </div>
   );

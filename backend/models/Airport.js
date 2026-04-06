@@ -45,7 +45,7 @@ const AirportSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-AirportSchema.index({ code: 1 });
+
 AirportSchema.index({ city: 'text', name: 'text' });
 
 module.exports = mongoose.model('Airport', AirportSchema);

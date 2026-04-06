@@ -3,6 +3,7 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { ROUTES } from "@/constants/routes";
 import PrivateRoute from "./PrivateRoute";
+import AdminRoute from "./AdminRoute";
 import AuthLayout from "@/components/layouts/AuthLayout";
 import MainLayout from "@/components/layouts/MainLayout";
 
@@ -22,90 +23,59 @@ const lazy_ = (fn) => {
 };
 
 export const router = createBrowserRouter([
-  // ── Auth routes ──────────────────────────────────────────────────────────
+  // ── Auth routes ──────────────────────────────────────────────────────
   {
     element: <AuthLayout />,
     children: [
-      {
-        path: ROUTES.LOGIN,
-        element: lazy_(() => import("@/components/auth/LoginPage")),
-      },
-      {
-        path: ROUTES.REGISTER,
-        element: lazy_(() => import("@/components/auth/RegisterPage")),
-      },
-      {
-        path: ROUTES.FORGOT_PW,
-        element: lazy_(() => import("@/components/auth/ForgotPasswordPage")),
-      },
-      {
-        path: ROUTES.VERIFY_OTP,
-        element: lazy_(() => import("@/components/auth/VerifyOTPPage")),
-      },
-      {
-        path: ROUTES.RESET_PW,
-        element: lazy_(() => import("@/components/auth/ResetPasswordPage")),
-      },
+      { path: ROUTES.LOGIN,      element: lazy_(() => import("@/components/auth/LoginPage")) },
+      { path: ROUTES.REGISTER,   element: lazy_(() => import("@/components/auth/RegisterPage")) },
+      { path: ROUTES.FORGOT_PW,  element: lazy_(() => import("@/components/auth/ForgotPasswordPage")) },
+      { path: ROUTES.VERIFY_OTP, element: lazy_(() => import("@/components/auth/VerifyOTPPage")) },
+      { path: ROUTES.RESET_PW,   element: lazy_(() => import("@/components/auth/ResetPasswordPage")) },
     ],
   },
 
-  // ── Public & Private routes (Main Layout) ────────────────────────────────
+  // ── Public & Protected routes (Main Layout) ───────────────────────────
   {
     element: <MainLayout />,
     children: [
-      {
-        path: ROUTES.HOME,
-        element: lazy_(() => import("@/components/pages/HomePage")),
-      },
-      {
-        path: ROUTES.SEARCH,
-        element: lazy_(() => import("@/components/pages/SearchPage")),
-      },
-      {
-        path: ROUTES.ROOM_DETAIL,
-        element: lazy_(() => import("@/components/pages/RoomDetailPage")),
-      },
+      // Public pages
+      { path: ROUTES.HOME,          element: lazy_(() => import("@/components/pages/HomePage")) },
+      { path: ROUTES.SEARCH,        element: lazy_(() => import("@/components/pages/SearchPage")) },
+      { path: ROUTES.BUS_SEARCH,    element: lazy_(() => import("@/components/pages/BusSearchPage")) },
+      { path: ROUTES.FLIGHT_SEARCH, element: lazy_(() => import("@/components/pages/FlightSearchPage")) },
+      { path: ROUTES.CHECKOUT,      element: lazy_(() => import("@/components/pages/CheckoutPage")) },
+      { path: ROUTES.ROOM_DETAIL,   element: lazy_(() => import("@/components/pages/RoomDetailPage")) },
+
+      // Protected user routes
       {
         element: <PrivateRoute />,
         children: [
-          {
-            path: ROUTES.DASHBOARD,
-            element: lazy_(() => import("@/components/pages/DashboardPage")),
-          },
-          {
-            path: ROUTES.PROFILE,
-            element: lazy_(() => import("@/components/pages/ProfilePage")),
-          },
-          {
-            path: ROUTES.BOOKING,
-            element: lazy_(() => import("@/components/pages/BookingPage")),
-          },
-          {
-            path: ROUTES.BOOKING_CONFIRMATION,
-            element: lazy_(
-              () => import("@/components/pages/BookingConfirmationPage"),
-            ),
-          },
-          {
-            path: ROUTES.BOOKING_FAILURE,
-            element: lazy_(
-              () => import("@/components/pages/BookingFailurePage"),
-            ),
-          },
-          {
-            path: ROUTES.BOOKING_HISTORY,
-            element: lazy_(
-              () => import("@/components/pages/BookingHistoryPage"),
-            ),
-          },
+          { path: ROUTES.BUS_SEATS,            element: lazy_(() => import("@/components/pages/BusSeatSelectionPage")) },
+          { path: ROUTES.BUS_CUSTOMER_INFO,    element: lazy_(() => import("@/components/pages/BusCustomerInfoPage")) },
+          { path: ROUTES.FLIGHT_SEATS,         element: lazy_(() => import("@/components/pages/FlightSeatsPage")) },
+          { path: ROUTES.FLIGHT_PAYMENT,       element: lazy_(() => import("@/components/pages/FlightPaymentPage")) },
+          { path: ROUTES.PROFILE,              element: lazy_(() => import("@/components/pages/ProfilePage")) },
+          { path: ROUTES.BOOKING,              element: lazy_(() => import("@/components/pages/BookingPage")) },
+          { path: ROUTES.BOOKING_CONFIRMATION, element: lazy_(() => import("@/components/pages/BookingConfirmationPage")) },
+          { path: ROUTES.BOOKING_FAILURE,      element: lazy_(() => import("@/components/pages/BookingFailurePage")) },
+          { path: ROUTES.BOOKING_HISTORY,      element: lazy_(() => import("@/components/pages/BookingHistoryPage")) },
+        ],
+      },
+
+      // Protected admin routes
+      {
+        element: <AdminRoute />,
+        children: [
+          { path: ROUTES.ADMIN,          element: lazy_(() => import("@/components/pages/AdminPage")) },
+          { path: ROUTES.ADMIN_FLIGHTS,  element: lazy_(() => import("@/components/pages/AdminPage")) },
+          { path: ROUTES.ADMIN_BOOKINGS, element: lazy_(() => import("@/components/pages/AdminPage")) },
+          { path: ROUTES.ADMIN_USERS,    element: lazy_(() => import("@/components/pages/AdminPage")) },
         ],
       },
     ],
   },
 
   { path: "/", element: <Navigate to={ROUTES.HOME} replace /> },
-  {
-    path: ROUTES.NOT_FOUND,
-    element: lazy_(() => import("@/components/pages/NotFoundPage")),
-  },
+  { path: ROUTES.NOT_FOUND, element: lazy_(() => import("@/components/pages/NotFoundPage")) },
 ]);

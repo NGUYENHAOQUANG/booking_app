@@ -22,9 +22,8 @@ export default function LoginPage() {
   const login    = useAuthStore((s) => s.login);
   const navigate = useNavigate();
   const location = useLocation();
-  
-  // Lấy đường dẫn trước đó hoặc mặc định về Dashboard
-  const from = location.state?.from?.pathname || ROUTES.DASHBOARD || "/";
+
+  const redirectTarget = location.state?.redirectTo;
 
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
 
@@ -69,7 +68,14 @@ export default function LoginPage() {
       toast.success("Đăng nhập thành công!");
       // Sử dụng setTimeout cực ngắn để đảm bảo Toast hiển thị và Store đã update xong
       setTimeout(() => {
-        navigate(from, { replace: true });
+        if (redirectTarget?.path) {
+          navigate(redirectTarget.path, {
+            replace: true,
+            state: redirectTarget.state,
+          });
+          return;
+        }
+        navigate(ROUTES.HOME, { replace: true });
       }, 100);
     } else {
       setApiError(res.error);
