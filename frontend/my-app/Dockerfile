@@ -1,28 +1,29 @@
-# Stage 1: Build the React application
+# Giai đoạn 1: Build mã nguồn React/Vite thành các file tĩnh (Build stage)
 FROM node:20-alpine AS build
 
+# Đặt thư mục làm việc chính
 WORKDIR /app
 
-# Copy package.json and package-lock.json
+# Copy các file cài đặt thư viện
 COPY package*.json ./
 
-# Install dependencies
+# Cài đặt tất cả các thư viện cần thiết
 RUN npm install
 
-# Copy the rest of the application code
+# Copy toàn bộ mã nguồn của frontend
 COPY . .
 
-# Build the application
+# Chạy lệnh build để tạo ra thư mục /dist (chứa HTML/JS/CSS đã nén)
 RUN npm run build
 
-# Stage 2: Serve the application with Nginx
+# Giai đoạn 2: Phục vụ Web (Serve) bằng Nginx (Giai đoạn nhẹ nhất)
 FROM nginx:alpine
 
-# Copy the build output from the build stage to Nginx's HTML directory
+# Copy các file tĩnh ĐÃ BUILD từ Stage 1 vào thư mục gốc của Nginx
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Expose port 80
+# Mở cổng 80 cho web
 EXPOSE 80
 
-# Start Nginx
+# Chạy Nginx ở chế độ foreground (không chạy ngầm để container không bị tắt)
 CMD ["nginx", "-g", "daemon off;"]
