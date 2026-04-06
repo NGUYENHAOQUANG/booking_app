@@ -1,24 +1,27 @@
-version: '3.8'
+# Phiên bản cấu hình docker-compose
+version: "3.8"
 
 services:
+  # Cấu hình cho dịch vụ Backend
   backend:
     build:
-      context: ./backend
+      context: ./backend # Chỉ đường dẫn đến thư mục chứa Dockerfile của backend
+    # Tên Image dùng để quản lý và đẩy lên Docker Hub
+    image: hquang123/booking-app-backend:latest
     ports:
-      - "5000:5000"
+      - "5000:5000" # Máy thật truy cập 5000 -> Container cổng 5000
     env_file:
-      - ./backend/.env
-    # For local development within Docker, you might want to switch MONGO_URI to a local container, 
-    # but since you're using Atlas, the env file is sufficient.
+      - ./backend/.env # Nạp toàn bộ biến môi trường từ file .env vào server
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=production # Chạy ở chế độ production
 
+  # Cấu hình cho dịch vụ Frontend
   frontend:
     build:
-      context: ./frontend/my-app
+      context: ./frontend/my-app # Chỉ đường dẫn đến Dockerfile của frontend
+    # Tên Image dùng để quản lý và đẩy lên Docker Hub
+    image: hquang123/booking-app-frontend:latest
     ports:
-      - "80:80"
+      - "80:80" # Truy cập web qua cổng 80 (cổng mặc định HTTP)
     depends_on:
-      - backend
-    # If the frontend needs to know the backend URL at build time, 
-    # you might need to adjust .env values accordingly (e.g. VITE_API_URL).
+      - backend # Backend phải khởi động trước thì Frontend mới bắt đầu chạy

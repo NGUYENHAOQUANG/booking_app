@@ -1,20 +1,20 @@
-# Use Node.js as the base image
+# Sử dụng Node.js phiên bản 20 (nhẹ nhất với alpine) để build server
 FROM node:20-alpine
 
-# Set the working directory
+# Thiết lập thư mục làm việc trong container là /app
 WORKDIR /app
 
-# Copy package.json and package-lock.json
+# Copy các file quản lý thư viện trước để tối ưu hóa việc cài đặt (cache)
 COPY package*.json ./
 
-# Install dependencies
+# Cài đặt các thư viện cần thiết cho dự án (chế độ production)
 RUN npm install --production
 
-# Copy the rest of the application code
+# Copy toàn bộ mã nguồn của backend vào thư mục /app trong container
 COPY . .
 
-# Expose the port the app runs on
+# Thông báo container này lắng nghe cổng 5000 (đúng cổng Backend của bạn)
 EXPOSE 5000
 
-# Start the application
+# Lệnh khởi chạy server (dùng node trực tiếp, không dùng nodemon trong container)
 CMD ["node", "index.js"]
