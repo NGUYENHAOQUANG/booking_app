@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { createElement, useState, useEffect, useMemo, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { 
   Plane, 
@@ -57,9 +57,9 @@ function airportLabel(airport) {
 
 const fmt = (n) => new Intl.NumberFormat("vi-VN").format(n) + "đ";
 
-const InfoPill = ({ icon: Icon, title, value }) => (
+const InfoPill = ({ icon, title, value }) => (
   <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-full px-4 py-2.5">
-    <Icon size={16} className="text-[#159c90]" />
+    {icon ? createElement(icon, { size: 16, className: "text-[#159c90]" }) : null}
     <div className="flex flex-col">
       <span className="text-[10px] uppercase font-bold text-gray-400 leading-none">{title}</span>
       <span className="text-sm font-semibold text-gray-900">{value}</span>
@@ -132,7 +132,7 @@ const FlightSearchPage = () => {
     return airport ? airportLabel(airport) : code;
   };
 
-  const fetchInitialData = async () => {
+  const fetchInitialData = useCallback(async () => {
     try {
       setLoading(true);
       const params = normalizeSearchParams(location.state?.searchParams);
@@ -188,11 +188,11 @@ const FlightSearchPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [location.state]);
 
   useEffect(() => {
     fetchInitialData();
-  }, [location.state]);
+  }, [fetchInitialData]);
 
   const handleSearch = async () => {
     if (!searchForm.origin || !searchForm.destination || !searchForm.departureDate) {
@@ -251,7 +251,7 @@ const FlightSearchPage = () => {
       }
       setEditMode(false);
       if (!mapped.length) toast("Không tìm thấy chuyến bay phù hợp", { icon: "ℹ️" });
-    } catch (error) {
+    } catch {
       toast.error("Lỗi tìm kiếm chuyến bay");
     } finally {
       setSearching(false);

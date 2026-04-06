@@ -7,15 +7,6 @@ const FlightCard = ({ flight, viewMode }) => {
   const [isHovered, setIsHovered] = useState(false);
   const navigate = useNavigate();
 
-  const formatTime = (time) => {
-    return time;
-  };
-
-  const calculateArrivalTime = (depart, duration) => {
-    // Simplified calculation
-    return depart;
-  };
-
   const getStopsText = (stops) => {
     if (stops === 0) return "Bay thẳng";
     if (stops === 1) return "1 điểm dừng";

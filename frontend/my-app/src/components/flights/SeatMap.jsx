@@ -1,6 +1,3 @@
-import { useState } from "react";
-import { ChevronRight } from "lucide-react";
-
 const SeatMap = ({ flightId = "VN145", selectedSeats = [], onSeatsChange = () => {} }) => {
   const ROWS = 6; // A-F
   const COLS = 6; // 1-6

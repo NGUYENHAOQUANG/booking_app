@@ -22,6 +22,7 @@ const BookingFailurePage = () => {
   const busTrip = location.state?.busTrip || {};
   const flightInfo = location.state?.flightInfo || {};
   const customer = location.state?.customer || {};
+  const createdAt = activeBooking?.createdAt;
   const selectedSeats = location.state?.selectedSeats || [];
   const outboundFlight = booking?.outboundFlight?.flight || {};
   const passengerSeats = booking?.passengers?.map((item) => item.seatOutbound).filter(Boolean) || [];
@@ -48,7 +49,7 @@ const BookingFailurePage = () => {
 
   const ticket = {
     code: activeBooking?.bookingCode || "PENDING",
-    date: formatDate(activeBooking?.createdAt || Date.now()),
+    date: formatDate(createdAt),
     customerName: customer.customerName || activeBooking?.contactInfo?.fullName || "--",
     phone: customer.phone || activeBooking?.contactInfo?.phone || "--",
     email: customer.email || activeBooking?.contactInfo?.email || "--",

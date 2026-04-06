@@ -66,7 +66,6 @@ export default function RegisterPage() {
   });
   const [errors, setErrors]   = useState({});
   const [loading, setLoading] = useState(false);
-  const [apiError, setApiError] = useState("");
 
   const navigate = useNavigate();
   const register = useAuthStore((s) => s.register);
@@ -93,7 +92,6 @@ export default function RegisterPage() {
     e.preventDefault();
     const errs = validate();
     setErrors(errs);
-    setApiError("");
     if (Object.keys(errs).length > 0) return;
     setLoading(true);
     try {
@@ -109,14 +107,12 @@ export default function RegisterPage() {
         toast.success("Đăng ký tài khoản thành công!");
         navigate(ROUTES.LOGIN, { state: { registerSuccess: true } });
       } else {
-        setApiError(res.error);
         toast.error(res.error);
       }
     } catch (err) {
       const response = err?.response?.data;
       const detailedError = response?.errors?.[0]?.message;
       const msg = detailedError || response?.message || "Đăng ký thất bại, vui lòng thử lại sau.";
-      setApiError(msg);
       toast.error(msg);
     } finally {
       setLoading(false);

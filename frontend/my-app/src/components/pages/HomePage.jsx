@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { createElement, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/constants/routes";
 import {
@@ -137,14 +137,14 @@ function formatDurationMinutes(minutes) {
   return `${h} giờ ${m} phút`;
 }
 
-function SearchTab({ active, icon: Icon, label, onClick }) {
+function SearchTab({ active, icon, label, onClick }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={`flex-1 flex items-center justify-center gap-2.5 h-14 font-semibold transition-all ${active ? "bg-white text-slate-900 shadow-sm" : "text-white/95 hover:bg-white/10"}`}
     >
-      <Icon size={18} />
+      {icon ? createElement(icon, { size: 18 }) : null}
       <span>{label}</span>
     </button>
   );
@@ -697,12 +697,12 @@ export default function HomePage() {
   );
 }
 
-function SuggestField({ label, value, onChange, options, icon: Icon, loading, listId }) {
+function SuggestField({ label, value, onChange, options, icon, loading, listId }) {
   return (
     <label className="flex flex-col gap-1.5 min-w-0">
       <span className="text-[13px] font-medium text-slate-700 pl-2">{label}</span>
       <div className="flex items-center gap-2 h-12 rounded-md bg-white px-3 border border-slate-200 shadow-sm">
-        <Icon size={16} className="text-slate-300 shrink-0" />
+        {icon ? createElement(icon, { size: 16, className: "text-slate-300 shrink-0" }) : null}
         <input
           type="text"
           value={value}
@@ -721,12 +721,12 @@ function SuggestField({ label, value, onChange, options, icon: Icon, loading, li
   );
 }
 
-function DateField({ label, value, onChange, icon: Icon, disabled = false }) {
+function DateField({ label, value, onChange, icon, disabled = false }) {
   return (
     <label className="flex flex-col gap-1.5 min-w-0">
       <span className="text-[13px] font-medium text-slate-700 pl-2">{label}</span>
       <div className="flex items-center gap-2 h-12 rounded-md bg-white px-3 border border-slate-200 shadow-sm">
-        <Icon size={16} className="text-slate-300 shrink-0" />
+        {icon ? createElement(icon, { size: 16, className: "text-slate-300 shrink-0" }) : null}
         <input
           type="date"
           value={value}

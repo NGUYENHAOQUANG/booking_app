@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { createElement, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   ArrowRight,
@@ -546,11 +546,11 @@ export default function BusSearchPage() {
   );
 }
 
-function SearchPill({ icon: Icon, label, value, extra = null }) {
+function SearchPill({ icon, label, value, extra = null }) {
   return (
     <div className="flex items-center gap-3 rounded-[20px] bg-white px-4 py-3 shadow-sm ring-1 ring-emerald-100">
       <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-        <Icon size={18} />
+        {icon ? createElement(icon, { size: 18 }) : null}
       </div>
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{label}</p>

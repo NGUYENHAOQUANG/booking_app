@@ -54,7 +54,7 @@ export default function AdminPage() {
       const data = await res.json();
       if (data.success) setUsers(data.data);
       else setError(data.message);
-    } catch (e) {
+    } catch {
       setError("Lỗi kết nối máy chủ");
     } finally {
       setLoading(false);
@@ -69,14 +69,14 @@ export default function AdminPage() {
       const res = await fetch("/api/bookings/my?limit=20", { credentials: "include" });
       const data = await res.json();
       if (data.success) setBookings(data.data);
-    } catch (e) {
+    } catch {
       setError("Lỗi kết nối máy chủ");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleToggleUser = async (userId, currentActive) => {
+  const handleToggleUser = async (userId) => {
     try {
       const res = await fetch(`/api/users/${userId}/toggle-active`, {
         method: "PUT",
@@ -89,7 +89,9 @@ export default function AdminPage() {
           prev.map((u) => u._id === userId ? { ...u, isActive: data.data.isActive } : u)
         );
       }
-    } catch (e) {}
+    } catch {
+      setError("Không thể cập nhật trạng thái người dùng");
+    }
   };
 
   const SIDEBAR_ITEMS = [
