@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./backend/.env
+    # For local development within Docker, you might want to switch MONGO_URI to a local container, 
+    # but since you're using Atlas, the env file is sufficient.
+    environment:
+      - NODE_ENV=production
+
+  frontend:
+    build:
+      context: ./frontend/my-app
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    # If the frontend needs to know the backend URL at build time, 
+    # you might need to adjust .env values accordingly (e.g. VITE_API_URL).
