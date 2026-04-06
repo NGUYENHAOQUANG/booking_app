@@ -1,19 +1,83 @@
 import { Check, ArrowRight } from "lucide-react";
+import { useLocation } from "react-router-dom";
+
+function formatDate(value) {
+  if (!value) return "--/--/----";
+  return new Date(value).toLocaleDateString("vi-VN");
+}
+
+function formatTime(value) {
+  if (!value) return "--:--";
+  return new Date(value).toLocaleTimeString("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function formatMoney(value) {
+  return `${new Intl.NumberFormat("vi-VN").format(value || 0)} VND`;
+}
 
 const BookingConfirmationPage = () => {
+  const location = useLocation();
+  const booking = location.state?.booking;
+  const busBooking = location.state?.busBooking;
+  const activeBooking = busBooking || booking;
+  const busTrip = location.state?.busTrip || {};
+  const flightInfo = location.state?.flightInfo || {};
+  const selectedSeats = location.state?.selectedSeats || [];
+  const outboundFlight = booking?.outboundFlight?.flight || {};
+  const passengerSeats = booking?.passengers?.map((item) => item.seatOutbound).filter(Boolean) || [];
+  const displaySeats = selectedSeats.length ? selectedSeats : passengerSeats;
+
+  const flightServiceName = [
+    outboundFlight?.airline?.name,
+    outboundFlight?.flightNumber,
+  ]
+    .filter(Boolean)
+    .join(" - ");
+
+  const fallbackServiceName = [
+    flightInfo?.airline?.name,
+    flightInfo?.flightNumber,
+  ]
+    .filter(Boolean)
+    .join(" - ");
+
+  const durationMinutes = outboundFlight?.duration;
+  const formattedDuration = durationMinutes
+    ? `${Math.floor(durationMinutes / 60)}h${String(durationMinutes % 60).padStart(2, "0")}m`
+    : "--";
+
   const ticket = {
-    code: "SGDL001",
-    date: "30/1/2026",
-    customerName: "Nguyễn Văn A",
-    phone: "0987625321",
-    email: "customer23@gmail.com",
-    service: "Xe Phương Trang",
-    seat: "Giường nằm - Giường nằm 41 chỗ ngồi",
-    departTime: "22:36",
-    departPlace: "Văn phòng quận 1",
-    arriveTime: "5:30",
-    arrivePlace: "VP Đà Lạt - Bùi Thị Xuân",
-    duration: "5 giờ 6 phút",
+    code: activeBooking?.bookingCode || "UNKNOWN",
+    date: formatDate(activeBooking?.createdAt),
+    customerName: activeBooking?.contactInfo?.fullName || "--",
+    phone: activeBooking?.contactInfo?.phone || "--",
+    email: activeBooking?.contactInfo?.email || "--",
+    service: busTrip.service || busBooking?.trip?.provider || flightServiceName || fallbackServiceName || "VivaVivu",
+    seat: displaySeats.length ? displaySeats.join(", ") : "--",
+    departTime: busTrip.departureTime || formatTime(outboundFlight?.departureTime || flightInfo?.departureTime),
+    departPlace:
+      busTrip.departurePoint ||
+      busBooking?.trip?.pickupPoint ||
+      outboundFlight?.origin?.name ||
+      flightInfo?.origin?.name ||
+      flightInfo?.origin?.city ||
+      "--",
+    arriveTime: busTrip.arrivalTime || formatTime(outboundFlight?.arrivalTime || flightInfo?.arrivalTime),
+    arrivePlace:
+      busTrip.arrivalPoint ||
+      busBooking?.trip?.dropoffPoint ||
+      outboundFlight?.destination?.name ||
+      flightInfo?.destination?.name ||
+      flightInfo?.destination?.city ||
+      "--",
+    duration: busTrip.duration || (busBooking?.trip?.durationMinutes ? `${busBooking.trip.durationMinutes} phút` : formattedDuration),
+    paymentMethod: activeBooking?.payment?.method || "--",
+    transactionId: activeBooking?.payment?.transactionId || "--",
+    paidAt: formatDate(activeBooking?.payment?.paidAt),
+    total: formatMoney(activeBooking?.pricing?.total),
   };
 
   return (
@@ -60,6 +124,13 @@ const BookingConfirmationPage = () => {
           <div className="flex justify-between items-center text-[13px] font-medium mb-6 text-slate-800 tracking-wide">
             <span>Mã vé: {ticket.code}</span>
             <span>Ngày đặt vé: {ticket.date}</span>
+          </div>
+
+          <div className="mb-6 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-xs font-semibold text-emerald-700">
+            <p>Tổng thanh toán: {ticket.total}</p>
+            <p>Phương thức: {ticket.paymentMethod}</p>
+            <p>Mã giao dịch: {ticket.transactionId}</p>
+            <p>Thời gian thanh toán: {ticket.paidAt}</p>
           </div>
 
           <h3 className="font-bold text-[14px] mb-2 text-slate-900 tracking-wide">

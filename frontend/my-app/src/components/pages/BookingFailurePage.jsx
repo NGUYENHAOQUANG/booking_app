@@ -1,19 +1,74 @@
 import { X, ArrowRight } from "lucide-react";
+import { useLocation } from "react-router-dom";
+
+function formatDate(value) {
+  if (!value) return "--/--/----";
+  return new Date(value).toLocaleDateString("vi-VN");
+}
+
+function formatTime(value) {
+  if (!value) return "--:--";
+  return new Date(value).toLocaleTimeString("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 const BookingFailurePage = () => {
+  const location = useLocation();
+  const booking = location.state?.booking;
+  const busBooking = location.state?.busBooking;
+  const activeBooking = busBooking || booking;
+  const busTrip = location.state?.busTrip || {};
+  const flightInfo = location.state?.flightInfo || {};
+  const customer = location.state?.customer || {};
+  const selectedSeats = location.state?.selectedSeats || [];
+  const outboundFlight = booking?.outboundFlight?.flight || {};
+  const passengerSeats = booking?.passengers?.map((item) => item.seatOutbound).filter(Boolean) || [];
+  const displaySeats = selectedSeats.length ? selectedSeats : passengerSeats;
+
+  const flightServiceName = [
+    outboundFlight?.airline?.name,
+    outboundFlight?.flightNumber,
+  ]
+    .filter(Boolean)
+    .join(" - ");
+
+  const fallbackServiceName = [
+    flightInfo?.airline?.name,
+    flightInfo?.flightNumber,
+  ]
+    .filter(Boolean)
+    .join(" - ");
+
+  const durationMinutes = outboundFlight?.duration || flightInfo?.duration;
+  const formattedDuration = durationMinutes
+    ? `${Math.floor(durationMinutes / 60)}h${String(durationMinutes % 60).padStart(2, "0")}m`
+    : "--";
+
   const ticket = {
-    code: "SGDL001",
-    date: "30/1/2026",
-    customerName: "Nguyễn Văn A",
-    phone: "0987625321",
-    email: "customer23@gmail.com",
-    service: "Xe Phương Trang",
-    seat: "Giường nằm - Giường nằm 41 chỗ ngồi",
-    departTime: "22:36",
-    departPlace: "Văn phòng quận 1",
-    arriveTime: "5:30",
-    arrivePlace: "VP Đà Lạt - Bùi Thị Xuân",
-    duration: "5 giờ 6 phút",
+    code: activeBooking?.bookingCode || "PENDING",
+    date: formatDate(activeBooking?.createdAt || Date.now()),
+    customerName: customer.customerName || activeBooking?.contactInfo?.fullName || "--",
+    phone: customer.phone || activeBooking?.contactInfo?.phone || "--",
+    email: customer.email || activeBooking?.contactInfo?.email || "--",
+    service: busTrip.service || busBooking?.trip?.provider || flightServiceName || fallbackServiceName || "VivaVivu",
+    seat: displaySeats.length ? displaySeats.join(", ") : "--",
+    departTime: busTrip.departureTime || formatTime(outboundFlight?.departureTime || flightInfo?.departureTime),
+    departPlace:
+      busTrip.departurePoint ||
+      outboundFlight?.origin?.name ||
+      flightInfo?.origin?.name ||
+      flightInfo?.origin?.city ||
+      "--",
+    arriveTime: busTrip.arrivalTime || formatTime(outboundFlight?.arrivalTime || flightInfo?.arrivalTime),
+    arrivePlace:
+      busTrip.arrivalPoint ||
+      outboundFlight?.destination?.name ||
+      flightInfo?.destination?.name ||
+      flightInfo?.destination?.city ||
+      "--",
+    duration: busTrip.duration || formattedDuration,
   };
 
   return (
@@ -22,7 +77,7 @@ const BookingFailurePage = () => {
         {/* Failure header */}
         <div className="flex flex-col items-center text-center space-y-3 mb-8 w-full">
           <span className="bg-[#ef4444] text-white text-[9px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-full">
-            Thành công
+            Thất bại
           </span>
           <div className="w-12 h-12 bg-[#ef4444] rounded-full flex items-center justify-center">
             <X size={28} className="text-white" strokeWidth={3} />

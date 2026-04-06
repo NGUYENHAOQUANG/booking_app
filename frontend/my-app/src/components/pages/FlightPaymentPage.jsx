@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   MapPin,
   Calendar,
@@ -14,6 +14,18 @@ import {
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import bookingService from "../../services/bookingService";
 import toast from "react-hot-toast";
+import userService from "@/services/userService";
+
+function splitName(fullName) {
+  const name = (fullName || "").trim();
+  if (!name) return { lastName: "", firstName: "" };
+  const parts = name.split(/\s+/);
+  if (parts.length === 1) return { lastName: parts[0], firstName: "" };
+  return {
+    lastName: parts[0],
+    firstName: parts.slice(1).join(" "),
+  };
+}
 
 const FlightPaymentPage = () => {
   const [paymentMethod, setPaymentMethod] = useState("momo");
@@ -22,10 +34,26 @@ const FlightPaymentPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const {
-    selectedSeats = ["1A"],
+    selectedSeats = [],
     flightId,
     flight: flightData,
   } = location.state || {};
+
+  const departureCity = flightData?.origin?.city || "Ho Chi Minh City, VN";
+  const arrivalCity = flightData?.destination?.city || "Da Lat, VN";
+  const departureDate = flightData?.departureTime
+    ? new Date(flightData.departureTime).toLocaleDateString("vi-VN")
+    : "24/1/2025";
+  const departureClock = flightData?.departureTime
+    ? new Date(flightData.departureTime).toLocaleTimeString("vi-VN", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "8:00";
+  const farePrice = flightData?.fareClasses?.[0]?.basePrice || 500000;
+  const subtotal = farePrice * selectedSeats.length;
+  const serviceFee = 100000;
+  const total = subtotal + serviceFee;
 
   // Form states
   const [contactInfo, setContactInfo] = useState({
@@ -41,11 +69,51 @@ const FlightPaymentPage = () => {
     firstName: "Văn A",
   });
 
+  useEffect(() => {
+    let mounted = true;
+
+    const loadProfile = async () => {
+      try {
+        const profileRes = await userService.getProfile();
+        const profile = profileRes?.data || {};
+        const { lastName, firstName } = splitName(profile.fullName);
+        if (!mounted) return;
+
+        setContactInfo((current) => ({
+          ...current,
+          lastName: lastName || current.lastName,
+          firstName: firstName || current.firstName,
+          phone: profile.phoneNumber || current.phone,
+          email: profile.email || current.email,
+        }));
+
+        setPassenger((current) => ({
+          ...current,
+          lastName: lastName || current.lastName,
+          firstName: firstName || current.firstName,
+        }));
+      } catch {
+        // Keep manual defaults if profile fetch fails.
+      }
+    };
+
+    loadProfile();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const handlePayment = async () => {
     if (!flightId) {
       toast.error(
         "Không tìm thấy thông tin chuyến bay! Vui lòng chọn lại chuyến bay.",
       );
+      return;
+    }
+
+    if (!selectedSeats.length) {
+      toast.error("Vui lòng chọn ít nhất 1 ghế trước khi thanh toán.");
+      navigate(-1);
       return;
     }
 
@@ -69,22 +137,20 @@ const FlightPaymentPage = () => {
         outboundFlight: {
           flight: flightId,
           fareClass: "ECO", // Default for now
-          farePrice: flightData?.fareClasses?.[0]?.basePrice || 1500000,
+          farePrice,
         },
-        passengers: [
-          {
-            type: "adult",
-            salutation: passenger.salutation,
-            firstName: passenger.firstName,
-            lastName: passenger.lastName,
-            seatOutbound: selectedSeats[0],
-          },
-        ],
+        passengers: selectedSeats.map((seat) => ({
+          type: "adult",
+          salutation: passenger.salutation,
+          firstName: passenger.firstName,
+          lastName: passenger.lastName,
+          seatOutbound: seat,
+        })),
         pricing: {
-          subtotal: 1500000,
+          subtotal,
           taxes: 100000,
-          serviceFee: 50000,
-          total: 1650000,
+          serviceFee,
+          total,
           currency: "VND",
         },
         payment: {
@@ -94,58 +160,55 @@ const FlightPaymentPage = () => {
       };
 
       const response = await bookingService.createBooking(payload);
+      const createdBooking = response?.data;
 
-      if (response && (response.data || response.success)) {
-        const resultData = response.data || response;
-        toast.success("Đặt vé cực mượt! Giao dịch đang chờ thanh toán.");
-        // Chuyển sang success
-        navigate("/booking-confirmation", {
-          state: {
-            ticket: {
-              code: resultData.bookingCode || "UNKNOWN",
-              date: new Date().toLocaleDateString("vi-VN"),
-              customerName: payload.contactInfo.fullName,
-              phone: payload.contactInfo.phone,
-              service: flightData
-                ? `${flightData.airline?.name} - ${flightData.flightNumber}`
-                : "Vietjet Air - VJ101",
-              seat: selectedSeats.join(", "),
-              departTime: flightData
-                ? new Date(flightData.departureTime).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
-                : "08:00",
-              departPlace: "Hà Nội",
-              arriveTime: flightData
-                ? new Date(flightData.arrivalTime).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
-                : "10:00",
-              arrivePlace: "Hồ Chí Minh",
-              duration: "2h00m",
-              status: "Thành công",
-            },
-          },
-        });
+      if (!createdBooking?._id) {
+        throw new Error("Không tạo được đặt vé mới");
       }
+
+      let bookingDetail = createdBooking;
+      try {
+        const detailRes = await bookingService.getBookingById(createdBooking._id);
+        bookingDetail = detailRes?.data || createdBooking;
+      } catch {
+        bookingDetail = createdBooking;
+      }
+
+      toast.success("Đặt vé cực mượt! Giao dịch đang chờ thanh toán.");
+      navigate("/booking-confirmation", {
+        state: {
+          booking: bookingDetail,
+          selectedSeats: bookingDetail?.passengers?.map((p) => p.seatOutbound).filter(Boolean) || selectedSeats,
+          flightInfo: flightData,
+        },
+      });
     } catch (error) {
       console.error("Lỗi đặt vé:", error);
-      toast.error(
-        error.response?.data?.message || "Có lỗi xảy ra khi tạo mã đặt chỗ.",
-      );
+      const message = error.response?.data?.message || "Có lỗi xảy ra khi tạo mã đặt chỗ.";
+      toast.error(message);
+      navigate("/booking-failure", {
+        state: {
+          customer: {
+            customerName: `${contactInfo.lastName} ${contactInfo.firstName}`.trim(),
+            phone: contactInfo.phone,
+            email: contactInfo.email,
+          },
+          selectedSeats,
+          flightInfo: flightData,
+          errorMessage: message,
+        },
+      });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 animate-in fade-in duration-700 font-sans bg-white">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 animate-in fade-in duration-700 font-sans antialiased bg-white">
       {/* --- Stepper Header --- */}
       <div className="bg-white rounded-[2rem] border border-teal-100 p-8 space-y-6">
         <div className="flex justify-between items-end">
-          <h1 className="text-4xl font-bold text-slate-800 tracking-tight">
+          <h1 className="text-3xl font-bold text-slate-800 tracking-tight">
             Thông tin thanh toán
           </h1>
           <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">
@@ -168,7 +231,7 @@ const FlightPaymentPage = () => {
         <div className="lg:col-span-2 space-y-8">
           {/* Thông tin liên hệ */}
           <section className="bg-white rounded-[2rem] border border-teal-100 p-8 space-y-8">
-            <h2 className="text-lg font-bold text-slate-800 uppercase tracking-tight">
+            <h2 className="text-base font-bold text-slate-800 uppercase tracking-tight">
               Thông tin liên hệ (nhận vé/ phiếu thanh toán)
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -238,7 +301,7 @@ const FlightPaymentPage = () => {
           <section className="bg-white rounded-[2rem] border border-teal-100 overflow-hidden shadow-sm">
             <div className="p-8 space-y-8">
               <div className="flex justify-between items-center">
-                <h2 className="text-lg font-bold text-slate-800 uppercase tracking-tight">
+                <h2 className="text-base font-bold text-slate-800 uppercase tracking-tight">
                   Thông tin khách hàng
                 </h2>
                 <button className="px-4 py-2 bg-teal-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-teal-600 transition-all">
@@ -444,7 +507,7 @@ const FlightPaymentPage = () => {
                       Từ
                     </p>
                     <p className="text-xs font-black text-slate-800 uppercase tracking-tight">
-                      Ho Chi Minh City, VN
+                      {departureCity}
                     </p>
                   </div>
                 </div>
@@ -457,7 +520,7 @@ const FlightPaymentPage = () => {
                       Tới
                     </p>
                     <p className="text-xs font-black text-slate-800 uppercase tracking-tight">
-                      Da Lat, VN
+                      {arrivalCity}
                     </p>
                   </div>
                 </div>
@@ -469,13 +532,13 @@ const FlightPaymentPage = () => {
                 <div className="flex items-center justify-center gap-2 py-3 bg-white rounded-lg shadow-sm">
                   <Calendar size={14} className="text-teal-600" />
                   <span className="text-[11px] font-black italic">
-                    24/1/2025
+                    {departureDate}
                   </span>
                 </div>
                 <div className="flex items-center justify-center gap-2 py-3 bg-white rounded-lg shadow-sm">
                   <Clock size={18} className="text-slate-200/50" />
                   <span className="text-[11px] font-black italic">
-                    8:00 Sáng
+                    {departureClock}
                   </span>
                 </div>
               </div>
@@ -485,7 +548,7 @@ const FlightPaymentPage = () => {
                   SEATS
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {["1A", "1A", "1A"].map((s, i) => (
+                  {selectedSeats.map((s, i) => (
                     <div
                       key={i}
                       className="flex items-center gap-2 px-3 py-1 bg-teal-50 text-teal-600 rounded-full border border-teal-100 text-[10px] font-black uppercase shadow-sm"
@@ -519,19 +582,19 @@ const FlightPaymentPage = () => {
 
               <div className="space-y-2 pt-4 border-t border-slate-50">
                 <div className="flex justify-between text-[11px] font-bold text-slate-400">
-                  <span>Tổng phụ (3 chỗ ngồi)</span>
-                  <span className="text-slate-800">500.000 VNĐ</span>
+                  <span>Tổng phụ ({selectedSeats.length} chỗ ngồi)</span>
+                  <span className="text-slate-800">{new Intl.NumberFormat("vi-VN").format(subtotal)} VND</span>
                 </div>
                 <div className="flex justify-between text-[11px] font-bold text-slate-400">
                   <span>Phí dịch vụ</span>
-                  <span className="text-slate-800">100.000VNĐ</span>
+                  <span className="text-slate-800">{new Intl.NumberFormat("vi-VN").format(serviceFee)}VND</span>
                 </div>
                 <div className="flex justify-between items-end pt-2">
                   <span className="text-lg font-black text-teal-600 uppercase italic">
                     Tổng chi phí
                   </span>
                   <span className="text-2xl font-black text-teal-600">
-                    600.000Vnđ
+                    {new Intl.NumberFormat("vi-VN").format(total)}VND
                   </span>
                 </div>
               </div>
